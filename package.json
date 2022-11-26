@@ -1,0 +1,18 @@
+{
+  "name": "youtube-full",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc src/index.ts --outfile dist/index.js --lib dom,es2016",
+    "watch": "tsc src/index.ts --outfile dist/index.js --watch --lib dom,es2016"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "^4.9.3"
+  },
+  "devDependencies": {
+    "prettier": "^2.8.0"
+  }
+}
