@@ -242,7 +242,7 @@ function main() {
     observer: MutationObserver
   ) => {
     for (const mutation of mutationList) {
-      if (mutation.target.nodeName === "VIDEO") {
+      if (mutation.target.nodeName === "VIDEO" && document.fullscreenElement) {
         clearTimeout(timeout)
         timeout = setTimeout(() => {
           initPosition(observer)

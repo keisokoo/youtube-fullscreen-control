@@ -196,7 +196,7 @@ function main() {
     var callback = function (mutationList, observer) {
         for (var _i = 0, mutationList_1 = mutationList; _i < mutationList_1.length; _i++) {
             var mutation = mutationList_1[_i];
-            if (mutation.target.nodeName === "VIDEO") {
+            if (mutation.target.nodeName === "VIDEO" && document.fullscreenElement) {
                 clearTimeout(timeout);
                 timeout = setTimeout(function () {
                     initPosition(observer);
