@@ -1,10 +1,10 @@
+"use strict";
 function main() {
-    var targetNode = document.body;
-    var config = { attributes: true, childList: true, subtree: true };
-    // let loopTime: LoopTimeType = { start: 137.316625, end: 141.1 }
-    var loopTime = { start: null, end: null };
-    var timeout = -1;
-    var ControlTypeList = [
+    const targetNode = document.body;
+    const config = { attributes: true, childList: true, subtree: true };
+    let loopTime = { start: null, end: null };
+    let timeout;
+    const ControlTypeList = [
         "RotationPlus",
         "RotationMinus",
         "ZoomReset",
@@ -21,16 +21,16 @@ function main() {
         "Up",
         "RightUp",
     ];
-    var VideoControlList = {
+    const VideoControlList = {
         BracketLeft: "LoopStart",
         BracketRight: "LoopEnd",
-        Backslash: "ResetLoop"
+        Backslash: "ResetLoop",
     };
-    var isVideoControlCode = function (value) {
+    const isVideoControlCode = (value) => {
         return (!!value &&
-            Object.keys(VideoControlList).some(function (item) { return item === value; }));
+            Object.keys(VideoControlList).some((item) => item === value));
     };
-    var NumberPadList = [
+    const NumberPadList = [
         "NumpadMultiply",
         "NumpadDivide",
         "NumpadDecimal",
@@ -46,8 +46,19 @@ function main() {
         "Numpad7",
         "Numpad8",
         "Numpad9",
+        "KeyH",
+        "KeyJ",
+        "KeyK",
+        "KeyL",
+        "Equal",
+        "Minus",
+        "Digit0",
+        "Semicolon",
+        "KeyO",
+        "KeyI",
+        "Quote",
     ];
-    var NumberToControlName = {
+    const NumberToControlName = {
         NumpadDecimal: "ZoomReset",
         NumpadAdd: "ZoomIn",
         NumpadSubtract: "ZoomOut",
@@ -62,7 +73,18 @@ function main() {
         Numpad8: "Up",
         Numpad9: "RightUp",
         NumpadMultiply: "RotationPlus",
-        NumpadDivide: "RotationMinus"
+        NumpadDivide: "RotationMinus",
+        KeyH: "Left",
+        KeyJ: "Down",
+        KeyK: "Up",
+        KeyL: "Right",
+        Equal: "ZoomIn",
+        Minus: "ZoomOut",
+        Digit0: "ZoomReset",
+        Semicolon: "PositionReset",
+        KeyO: "RotationPlus",
+        KeyI: "RotationMinus",
+        Quote: "Reset",
     };
     function isCurrentPosition(value) {
         return (!!value &&
@@ -73,13 +95,13 @@ function main() {
             "rotation" in value);
     }
     function getYoutubeVideo() {
-        var video = document.querySelector("video:not(#video-preview-container video)");
+        const video = document.querySelector("video:not(#video-preview-container video)");
         return video;
     }
     function getCurrentPosition() {
-        var currentPositionString = localStorage.getItem("currentPosition");
+        const currentPositionString = localStorage.getItem("currentPosition");
         if (currentPositionString) {
-            var currentPosition = JSON.parse(currentPositionString);
+            const currentPosition = JSON.parse(currentPositionString);
             if (isCurrentPosition(currentPosition)) {
                 return currentPosition;
             }
@@ -92,16 +114,16 @@ function main() {
         }
     }
     function initPosition(observer) {
-        var currentPosition = getCurrentPosition();
-        observer === null || observer === void 0 ? void 0 : observer.disconnect();
-        var video = getYoutubeVideo();
+        const currentPosition = getCurrentPosition();
+        observer?.disconnect();
+        const video = getYoutubeVideo();
         setTransformString(video, currentPosition.x, currentPosition.y, currentPosition.scale, currentPosition.rotation);
     }
-    var stringCheck = function (target, value) {
+    const stringCheck = (target, value) => {
         return target.includes(value);
     };
-    var controlVideo = function (el, controlName) {
-        var runCode = VideoControlList[controlName];
+    const controlVideo = (el, controlName) => {
+        const runCode = VideoControlList[controlName];
         if (runCode === "LoopStart") {
             if (loopTime.end && loopTime.end < el.currentTime)
                 return;
@@ -116,11 +138,79 @@ function main() {
             loopTime = { start: null, end: null };
         }
     };
-    var transformVideo = function (el, currentPosition, controlName) {
-        var nextScale = currentPosition.scale;
-        var nextX = currentPosition.x;
-        var nextY = currentPosition.y;
-        var nextAngle = currentPosition.rotation;
+    const rotationVariation = {
+        0: {
+            Left: "Left",
+            Down: "Down",
+            Right: "Right",
+            Up: "Up",
+        },
+        90: {
+            Left: "Up",
+            Down: "Left",
+            Right: "Down",
+            Up: "Right",
+        },
+        "-90": {
+            Left: "Down",
+            Down: "Right",
+            Right: "Up",
+            Up: "Left",
+        },
+        180: {
+            Left: "Right",
+            Down: "Up",
+            Right: "Left",
+            Up: "Down",
+        },
+        "-180": {
+            Left: "Right",
+            Down: "Up",
+            Right: "Left",
+            Up: "Down",
+        },
+        270: {
+            Left: "Down",
+            Down: "Right",
+            Right: "Up",
+            Up: "Left",
+        },
+        "-270": {
+            Left: "Up",
+            Down: "Left",
+            Right: "Down",
+            Up: "Right",
+        },
+    };
+    const isInAllowAngle = (value) => {
+        const allowAngleList = [0, 90, 180, 270, -90, -180, -270];
+        return allowAngleList.includes(Number(value));
+    };
+    const translateWithRotation = (angle, direction, nextX, nextY, nextScale) => {
+        if (isInAllowAngle(angle)) {
+            if (stringCheck(direction, rotationVariation[angle]["Left"])) {
+                nextX -= 10 * nextScale;
+            }
+            if (stringCheck(direction, rotationVariation[angle]["Right"])) {
+                nextX += 10 * nextScale;
+            }
+            if (stringCheck(direction, rotationVariation[angle]["Up"])) {
+                nextY -= 10 * nextScale;
+            }
+            if (stringCheck(direction, rotationVariation[angle]["Down"])) {
+                nextY += 10 * nextScale;
+            }
+        }
+        return {
+            nextX,
+            nextY,
+        };
+    };
+    const transformVideo = (el, currentPosition, controlName) => {
+        let nextScale = currentPosition.scale;
+        let nextX = currentPosition.x;
+        let nextY = currentPosition.y;
+        let nextAngle = currentPosition.rotation;
         if (controlName === "ZoomIn") {
             nextScale = currentPosition.scale + 0.1;
         }
@@ -130,18 +220,9 @@ function main() {
         if (controlName === "ZoomReset") {
             nextScale = 1;
         }
-        if (stringCheck(controlName, "Left")) {
-            nextX -= 10 * nextScale;
-        }
-        if (stringCheck(controlName, "Right")) {
-            nextX += 10 * nextScale;
-        }
-        if (stringCheck(controlName, "Up")) {
-            nextY -= 10 * nextScale;
-        }
-        if (stringCheck(controlName, "Down")) {
-            nextY += 10 * nextScale;
-        }
+        const next = translateWithRotation(nextAngle, controlName, nextX, nextY, nextScale);
+        nextX = next.nextX;
+        nextY = next.nextY;
         if (controlName === "PositionReset") {
             nextX = 0;
             nextY = 0;
@@ -164,27 +245,39 @@ function main() {
         }
         setTransformString(el, nextX, nextY, nextScale, nextAngle);
     };
-    var isNumberPadCode = function (value) {
+    const isNumberPadCode = (value) => {
         return value !== undefined && NumberPadList.includes(value);
     };
     function setTransformString(el, tx, ty, sc, rt) {
-        var configs = { x: tx, y: ty, scale: sc, rotation: rt };
+        const configs = {
+            x: tx,
+            y: ty,
+            scale: sc,
+            rotation: rt,
+        };
         localStorage.setItem("currentPosition", JSON.stringify(configs));
-        el.style.transform = "translate(".concat(tx !== null && tx !== void 0 ? tx : 0, "px,").concat(ty !== null && ty !== void 0 ? ty : 0, "px) scale(").concat(sc !== null && sc !== void 0 ? sc : 1, ")");
-        el.parentElement.style.transform = "rotate(".concat(rt, "deg)");
-        el.parentElement.style.width = "100%";
-        el.parentElement.style.height = "100%";
+        el.style.transform = `translate(${tx ?? 0}px,${ty ?? 0}px) scale(${sc ?? 1})`;
+        const parentElement = el.parentElement;
+        if (parentElement) {
+            parentElement.style.transform = `rotate(${rt}deg)`;
+            parentElement.style.width = `100%`;
+            parentElement.style.height = `100%`;
+        }
     }
     function getPositionByMatrix(el) {
-        var matrix = new WebKitCSSMatrix(window.getComputedStyle(el).transform);
-        var parentMatrix = new WebKitCSSMatrix(window.getComputedStyle(el.parentElement).transform);
-        var angleX = getCurrentPosition().rotation;
-        return { x: matrix.m41, y: matrix.m42, scale: matrix.m11, rotation: angleX };
+        const matrix = new WebKitCSSMatrix(window.getComputedStyle(el).transform);
+        const angleX = getCurrentPosition().rotation;
+        return {
+            x: matrix.m41,
+            y: matrix.m42,
+            scale: matrix.m11,
+            rotation: angleX,
+        };
     }
     function keyEvent(e) {
-        var video = getYoutubeVideo();
+        const video = getYoutubeVideo();
         if (e.altKey && video) {
-            var eCode = e.code;
+            const eCode = e.code;
             if (isNumberPadCode(eCode)) {
                 transformVideo(video, getPositionByMatrix(video), NumberToControlName[eCode]);
             }
@@ -193,21 +286,20 @@ function main() {
             }
         }
     }
-    var callback = function (mutationList, observer) {
-        for (var _i = 0, mutationList_1 = mutationList; _i < mutationList_1.length; _i++) {
-            var mutation = mutationList_1[_i];
+    const callback = (mutationList, observer) => {
+        for (const mutation of mutationList) {
             if (mutation.target.nodeName === "VIDEO" && document.fullscreenElement) {
                 clearTimeout(timeout);
-                timeout = setTimeout(function () {
+                timeout = setTimeout(() => {
                     initPosition(observer);
                     observer.observe(targetNode, config);
                 }, 500);
             }
         }
     };
-    var observer = new MutationObserver(callback);
+    const observer = new MutationObserver(callback);
     function timeupdate(e) {
-        var videoElement = e.currentTarget;
+        const videoElement = e.currentTarget;
         if (typeof loopTime.start === "number" &&
             typeof loopTime.end === "number") {
             if (videoElement.currentTime < loopTime.start) {
@@ -222,27 +314,29 @@ function main() {
             }
         }
     }
-    var fullScreenEvent = function (e) {
+    const fullScreenEvent = (e) => {
         if (document.fullscreenElement) {
             observer.observe(targetNode, config);
             window.addEventListener("keydown", keyEvent);
-            var video = getYoutubeVideo();
+            const video = getYoutubeVideo();
+            video.style.transition = "0.3s";
             video.addEventListener("timeupdate", timeupdate);
         }
         else {
             observer.disconnect();
             window.removeEventListener("keydown", keyEvent);
-            var video = getYoutubeVideo();
+            const video = getYoutubeVideo();
+            video.style.transition = "";
             video.removeEventListener("timeupdate", timeupdate);
         }
     };
-    var fullScreenEventList = [
+    const fullScreenEventList = [
         "fullscreenchange",
         "webkitfullscreenchange",
         "mozfullscreenchange",
         "msfullscreenchange",
     ];
-    fullScreenEventList.forEach(function (eventType) {
+    fullScreenEventList.forEach((eventType) => {
         document.removeEventListener(eventType, fullScreenEvent);
         document.addEventListener(eventType, fullScreenEvent, false);
     });

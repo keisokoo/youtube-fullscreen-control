@@ -4,7 +4,7 @@ function main() {
   type LoopTimeType = { start: number | null; end: number | null }
   // let loopTime: LoopTimeType = { start: 137.316625, end: 141.1 }
   let loopTime: LoopTimeType = { start: null, end: null }
-  let timeout = -1
+  let timeout: NodeJS.Timeout
   type CurrentPosition = {
     x: number
     y: number
@@ -60,6 +60,20 @@ function main() {
     "Numpad7",
     "Numpad8",
     "Numpad9",
+
+    "KeyH", // left
+    "KeyJ", // down
+    "KeyK", // up
+    "KeyL", // right
+
+    "Equal", // plus
+    "Minus", // minus
+    "Digit0", // zoom reset
+    "Semicolon", // position reset
+
+    "KeyO", // rotation
+    "KeyI", // rotation
+    "Quote", // reset all
   ] as const
   type ControlCode = typeof NumberPadList[number]
   type ControlEvent = (
@@ -83,6 +97,17 @@ function main() {
     Numpad9: "RightUp",
     NumpadMultiply: "RotationPlus",
     NumpadDivide: "RotationMinus",
+    KeyH: "Left",
+    KeyJ: "Down",
+    KeyK: "Up",
+    KeyL: "Right",
+    Equal: "ZoomIn",
+    Minus: "ZoomOut",
+    Digit0: "ZoomReset",
+    Semicolon: "PositionReset",
+    KeyO: "RotationPlus",
+    KeyI: "RotationMinus",
+    Quote: "Reset",
   } as {
     [key in ControlCode]: ControlNameType
   }
@@ -147,6 +172,82 @@ function main() {
       loopTime = { start: null, end: null }
     }
   }
+  type FourDirections = "Left" | "Right" | "Up" | "Down"
+  type allowAngle = 0 | 90 | 180 | 270 | -90 | -180 | -270
+  const rotationVariation = {
+    0: {
+      Left: "Left",
+      Down: "Down",
+      Right: "Right",
+      Up: "Up",
+    },
+    90: {
+      Left: "Up",
+      Down: "Left",
+      Right: "Down",
+      Up: "Right",
+    },
+    "-90": {
+      Left: "Down",
+      Down: "Right",
+      Right: "Up",
+      Up: "Left",
+    },
+    180: {
+      Left: "Right",
+      Down: "Up",
+      Right: "Left",
+      Up: "Down",
+    },
+    "-180": {
+      Left: "Right",
+      Down: "Up",
+      Right: "Left",
+      Up: "Down",
+    },
+    270: {
+      Left: "Down",
+      Down: "Right",
+      Right: "Up",
+      Up: "Left",
+    },
+    "-270": {
+      Left: "Up",
+      Down: "Left",
+      Right: "Down",
+      Up: "Right",
+    },
+  } as { [key in allowAngle]: { [key in FourDirections]: FourDirections } }
+  const isInAllowAngle = (value: number): value is allowAngle => {
+    const allowAngleList: allowAngle[] = [0, 90, 180, 270, -90, -180, -270]
+    return allowAngleList.includes(Number(value) as allowAngle)
+  }
+  const translateWithRotation = (
+    angle: number,
+    direction: ControlNameType,
+    nextX: number,
+    nextY: number,
+    nextScale: number
+  ) => {
+    if (isInAllowAngle(angle)) {
+      if (stringCheck(direction, rotationVariation[angle]["Left"])) {
+        nextX -= 10 * nextScale
+      }
+      if (stringCheck(direction, rotationVariation[angle]["Right"])) {
+        nextX += 10 * nextScale
+      }
+      if (stringCheck(direction, rotationVariation[angle]["Up"])) {
+        nextY -= 10 * nextScale
+      }
+      if (stringCheck(direction, rotationVariation[angle]["Down"])) {
+        nextY += 10 * nextScale
+      }
+    }
+    return {
+      nextX,
+      nextY,
+    }
+  }
   const transformVideo: ControlEvent = (el, currentPosition, controlName) => {
     let nextScale = currentPosition.scale
     let nextX = currentPosition.x
@@ -161,18 +262,15 @@ function main() {
     if (controlName === "ZoomReset") {
       nextScale = 1
     }
-    if (stringCheck(controlName, "Left")) {
-      nextX -= 10 * nextScale
-    }
-    if (stringCheck(controlName, "Right")) {
-      nextX += 10 * nextScale
-    }
-    if (stringCheck(controlName, "Up")) {
-      nextY -= 10 * nextScale
-    }
-    if (stringCheck(controlName, "Down")) {
-      nextY += 10 * nextScale
-    }
+    const next = translateWithRotation(
+      nextAngle,
+      controlName,
+      nextX,
+      nextY,
+      nextScale
+    )
+    nextX = next.nextX
+    nextY = next.nextY
     if (controlName === "PositionReset") {
       nextX = 0
       nextY = 0
@@ -205,22 +303,32 @@ function main() {
     sc: number,
     rt: number
   ) {
-    const configs = { x: tx, y: ty, scale: sc, rotation: rt } as CurrentPosition
+    const configs = {
+      x: tx,
+      y: ty,
+      scale: sc,
+      rotation: rt,
+    } as CurrentPosition
     localStorage.setItem("currentPosition", JSON.stringify(configs))
     el.style.transform = `translate(${tx ?? 0}px,${ty ?? 0}px) scale(${
       sc ?? 1
     })`
-    el.parentElement!.style.transform = `rotate(${rt}deg)`
-    el.parentElement!.style.width = `100%`
-    el.parentElement!.style.height = `100%`
+    const parentElement = el.parentElement
+    if (parentElement) {
+      parentElement.style.transform = `rotate(${rt}deg)`
+      parentElement.style.width = `100%`
+      parentElement.style.height = `100%`
+    }
   }
   function getPositionByMatrix(el: HTMLVideoElement): CurrentPosition {
     const matrix = new WebKitCSSMatrix(window.getComputedStyle(el).transform)
-    const parentMatrix = new WebKitCSSMatrix(
-      window.getComputedStyle(el.parentElement!).transform
-    )
     const angleX = getCurrentPosition().rotation
-    return { x: matrix.m41, y: matrix.m42, scale: matrix.m11, rotation: angleX }
+    return {
+      x: matrix.m41,
+      y: matrix.m42,
+      scale: matrix.m11,
+      rotation: angleX,
+    }
   }
   function keyEvent(e: KeyboardEvent) {
     const video = getYoutubeVideo()
@@ -274,11 +382,13 @@ function main() {
       observer.observe(targetNode, config)
       window.addEventListener("keydown", keyEvent)
       const video = getYoutubeVideo()
+      video.style.transition = "0.3s"
       video.addEventListener("timeupdate", timeupdate)
     } else {
       observer.disconnect()
       window.removeEventListener("keydown", keyEvent)
       const video = getYoutubeVideo()
+      video.style.transition = ""
       video.removeEventListener("timeupdate", timeupdate)
     }
   }
