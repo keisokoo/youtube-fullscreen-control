@@ -4,6 +4,13 @@ class ClickDrag extends Drag {
   onMouseDown = (event: MouseEvent) => {
     if (!event.shiftKey) return
     this.ts = this.getPosition()
+    if (event.button === 1) {
+      event.preventDefault()
+      this.ts.rotate = this.toggleRotation(this.ts.rotate)
+      this.setTransform()
+      return
+    }
+
     cancelAnimationFrame(this.inertiaAnimationFrame)
     this.isDrag = true
     this.isScale = false
@@ -84,7 +91,6 @@ class ClickDrag extends Drag {
     let rec = this.targetElement.getBoundingClientRect()
     let pointerX = (event.clientX - rec.left) / this.ts.scale
     let pointerY = (event.clientY - rec.top) / this.ts.scale
-    console.log(event)
 
     let delta = (event.deltaX ?? event.deltaY) * -1
     if (this.ts.scale === this.maxScale && delta > 0) {
