@@ -9,7 +9,7 @@ type translateValues = {
 }
 
 class ControlPosition {
-  factor = 0.1
+  factor = 0.05
   minScale = 0.1
   maxScale = 10
   ts = {
@@ -88,9 +88,9 @@ class ControlPosition {
   private isTranslateValues = (value: any): value is translateValues => {
     return (
       value !== undefined &&
-      'translate' in value &&
-      'rotate' in value &&
-      'scale' in value
+      "translate" in value &&
+      "rotate" in value &&
+      "scale" in value
     )
   }
   getPosition = (el?: HTMLElement) => {
