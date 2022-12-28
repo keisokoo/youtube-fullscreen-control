@@ -1,6 +1,247 @@
 import Drag from "./Drag"
 
+const NumberPadList = [
+  "NumpadMultiply",
+  "NumpadDivide",
+  "NumpadDecimal",
+  "NumpadAdd",
+  "NumpadSubtract",
+  "Numpad0",
+  "Numpad1",
+  "Numpad2",
+  "Numpad3",
+  "Numpad4",
+  "Numpad5",
+  "Numpad6",
+  "Numpad7",
+  "Numpad8",
+  "Numpad9",
+
+  "KeyH", // left
+  "KeyJ", // down
+  "KeyK", // up
+  "KeyL", // right
+
+  "Equal", // plus
+  "Minus", // minus
+  "Digit0", // zoom reset
+  "Semicolon", // position reset
+
+  "KeyO", // rotation
+  "KeyI", // rotation
+  "Quote", // reset all
+] as const
+type ControlCode = typeof NumberPadList[number]
+
+const NumberToControlName = {
+  NumpadDecimal: "ZoomReset",
+  NumpadAdd: "ZoomIn",
+  NumpadSubtract: "ZoomOut",
+  Numpad0: "Reset",
+  Numpad1: "LeftDown",
+  Numpad2: "Down",
+  Numpad3: "RightDown",
+  Numpad4: "Left",
+  Numpad5: "PositionReset",
+  Numpad6: "Right",
+  Numpad7: "LeftUp",
+  Numpad8: "Up",
+  Numpad9: "RightUp",
+  NumpadMultiply: "RotationPlus",
+  NumpadDivide: "RotationMinus",
+  KeyH: "Left",
+  KeyJ: "Down",
+  KeyK: "Up",
+  KeyL: "Right",
+  Equal: "ZoomIn",
+  Minus: "ZoomOut",
+  Digit0: "ZoomReset",
+  Semicolon: "PositionReset",
+  KeyO: "RotationPlus",
+  KeyI: "RotationMinus",
+  Quote: "Reset",
+} as {
+  [key in ControlCode]: ControlNameType
+}
+const ControlTypeList = [
+  "RotationPlus",
+  "RotationMinus",
+  "ZoomReset",
+  "ZoomIn",
+  "ZoomOut",
+  "Reset",
+  "LeftDown",
+  "Down",
+  "RightDown",
+  "Left",
+  "PositionReset",
+  "Right",
+  "LeftUp",
+  "Up",
+  "RightUp",
+] as const
+type ControlNameType = typeof ControlTypeList[number]
+type ControlEvent = (controlName: ControlNameType) => void
+
+type allowAngle = 0 | 90 | 180 | 270 | -90 | -180 | -270
+const VideoControlList = {
+  BracketLeft: "LoopStart",
+  BracketRight: "LoopEnd",
+  Backslash: "ResetLoop",
+} as const
 class ClickDrag extends Drag {
+  onTimeUpdate = (e: Event) => {
+    const videoElement = e.currentTarget as HTMLVideoElement
+    if (!this.loopTime) return
+    if (
+      typeof this.loopTime.start === "number" &&
+      typeof this.loopTime.end === "number"
+    ) {
+      if (videoElement.currentTime < this.loopTime.start) {
+        videoElement.pause()
+        videoElement.currentTime = this.loopTime.start
+        videoElement.play()
+      } else if (videoElement.currentTime > this.loopTime.end) {
+        videoElement.pause()
+        videoElement.currentTime = this.loopTime.start
+        videoElement.play()
+      }
+    }
+  }
+  private controlVideo = (
+    el: HTMLVideoElement,
+    controlName: keyof typeof VideoControlList
+  ) => {
+    const runCode = VideoControlList[controlName]
+    if (runCode === "LoopStart") {
+      if (this.loopTime.end && this.loopTime.end < el.currentTime) return
+      this.loopTime.start = el.currentTime
+    }
+    if (runCode === "LoopEnd") {
+      if (this.loopTime.start && this.loopTime.start > el.currentTime) return
+      this.loopTime.end = el.currentTime
+    }
+    if (runCode === "ResetLoop") {
+      this.loopTime = { start: null, end: null }
+    }
+  }
+  private isVideoControlCode = (
+    value: string
+  ): value is keyof typeof VideoControlList => {
+    return (
+      !!value &&
+      (
+        Object.keys(VideoControlList) as Array<keyof typeof VideoControlList>
+      ).some((item) => item === (value as keyof typeof VideoControlList))
+    )
+  }
+  private stringCheck = (target: string, value: string) => {
+    return target.includes(value)
+  }
+  private isInAllowAngle = (value: number): value is allowAngle => {
+    const allowAngleList: allowAngle[] = [0, 90, 180, 270, -90, -180, -270]
+    return allowAngleList.includes(Number(value) as allowAngle)
+  }
+  private translateWithRotation = (
+    angle: number,
+    direction: ControlNameType,
+    nextX: number,
+    nextY: number,
+    nextScale: number
+  ) => {
+    if (this.isInAllowAngle(angle)) {
+      if (this.stringCheck(direction, "Left")) {
+        nextX -= 10 * nextScale
+      }
+      if (this.stringCheck(direction, "Right")) {
+        nextX += 10 * nextScale
+      }
+      if (this.stringCheck(direction, "Up")) {
+        nextY -= 10 * nextScale
+      }
+      if (this.stringCheck(direction, "Down")) {
+        nextY += 10 * nextScale
+      }
+    }
+    return {
+      nextX,
+      nextY,
+    }
+  }
+  private transformVideo: ControlEvent = (controlName) => {
+    let currentPosition = this.getPosition()
+    let nextScale = currentPosition.scale
+    let nextX = currentPosition.translate.x
+    let nextY = currentPosition.translate.y
+    let nextAngle = currentPosition.rotate
+    if (controlName === "ZoomIn") {
+      nextScale = currentPosition.scale + 0.1
+    }
+    if (controlName === "ZoomOut") {
+      nextScale = currentPosition.scale - 0.1
+    }
+    if (controlName === "ZoomReset") {
+      nextScale = 1
+    }
+    const next = this.translateWithRotation(
+      nextAngle,
+      controlName,
+      nextX,
+      nextY,
+      nextScale
+    )
+    nextX = next.nextX
+    nextY = next.nextY
+    if (controlName === "PositionReset") {
+      nextX = 0
+      nextY = 0
+    }
+    if (controlName === "Reset") {
+      nextX = 0
+      nextY = 0
+      nextScale = 1
+      nextAngle = 0
+    }
+    if (controlName === "RotationPlus") {
+      nextAngle += 90
+      nextAngle = nextAngle % 360
+    }
+    if (controlName === "RotationMinus") {
+      nextAngle -= 90
+      nextAngle = nextAngle % 360
+      nextAngle = nextAngle < 0 ? nextAngle + 360 : nextAngle
+      if (Math.abs(nextAngle) === 0) nextAngle = 0
+    }
+    this.ts = {
+      rotate: nextAngle,
+      scale: nextScale,
+      translate: {
+        x: nextX,
+        y: nextY,
+      },
+    }
+    this.setTransform()
+  }
+  private isNumberPadCode = (value: string): value is ControlCode => {
+    return value !== undefined && NumberPadList.includes(value as any)
+  }
+  private getYoutubeVideo() {
+    const video = document.querySelector(
+      "video:not(#video-preview-container video)"
+    ) as HTMLVideoElement
+    return video
+  }
+  onKeyDown = (e: KeyboardEvent) => {
+    const video = this.getYoutubeVideo()
+    if (e.altKey && video) {
+      const eCode = e.code
+      if (this.isNumberPadCode(eCode)) {
+        this.transformVideo(NumberToControlName[eCode])
+      } else if (this.isVideoControlCode(eCode)) {
+        this.controlVideo(video, eCode)
+      }
+    }
+  }
   onMouseDown = (event: MouseEvent) => {
     if (!event.shiftKey) return
     this.ts = this.getPosition()

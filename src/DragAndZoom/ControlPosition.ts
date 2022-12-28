@@ -1,13 +1,14 @@
-type XY = {
+export type XY = {
   x: number
   y: number
 }
-type translateValues = {
+export type translateValues = {
   scale: number
   rotate: number
   translate: XY
 }
 
+type LoopTimeType = { start: number | null; end: number | null }
 class ControlPosition {
   factor = 0.05
   minScale = 0.1
@@ -20,11 +21,16 @@ class ControlPosition {
       y: 0,
     },
   }
+  loopTime: LoopTimeType = { start: null, end: null }
   restrictPosition?: (current: XY, targetEl: DOMRect) => XY
+  public before?: () => void
+  public after?: () => void
   constructor(
     public targetElement: HTMLElement,
-    public eventElement?: HTMLElement,
+    public eventElement: HTMLElement,
     configs?: {
+      before?: () => void
+      after?: () => void
       factor?: number
       minScale?: number
       maxScale?: number
@@ -34,6 +40,8 @@ class ControlPosition {
     if (configs?.factor) this.factor = configs.factor
     if (configs?.minScale) this.minScale = configs.minScale
     if (configs?.maxScale) this.maxScale = configs.maxScale
+    if (configs?.before) this.before = configs.before
+    if (configs?.after) this.after = configs.after
     if (configs?.restrictPosition)
       this.restrictPosition = configs.restrictPosition
   }
@@ -109,8 +117,21 @@ class ControlPosition {
     }
     this.setTransform()
   }
+  loadTransform = () => {
+    const tsString = localStorage.getItem("ytf-transform")
+    if (tsString) {
+      const parse = JSON.parse(tsString)
+      if (this.isTranslateValues(parse)) {
+        this.ts = parse
+        this.setTransform()
+      }
+    }
+  }
   setTransform = () => {
+    if (this.before) this.before()
+    localStorage.setItem("ytf-transform", JSON.stringify(this.ts))
     this.targetElement.style.transform = `translate(${this.ts.translate.x}px,${this.ts.translate.y}px) scale(${this.ts.scale}) rotate(${this.ts.rotate}deg)`
+    if (this.after) this.after()
   }
   toggleRotation = (value: number) => {
     value = Math.abs(value)

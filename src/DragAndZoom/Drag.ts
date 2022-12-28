@@ -1,4 +1,4 @@
-import ControlPosition from './ControlPosition'
+import ControlPosition from "./ControlPosition"
 
 class Drag extends ControlPosition {
   inertiaAnimationFrame = -1
@@ -24,13 +24,11 @@ class Drag extends ControlPosition {
   startScale = 1
   private capSpeed = (value: number) => {
     let res = 0
-
     if (Math.abs(value) > this.maximumInertia) {
       res = this.maximumInertia
       res *= value < 0 ? -1 : 1
       return res
     }
-
     return value
   }
   private updateInertia = () => {
@@ -56,7 +54,6 @@ class Drag extends ControlPosition {
       x: this.capSpeed(this.restrictXY(this.velocity).x),
       y: this.capSpeed(this.restrictXY(this.velocity).y),
     }
-
     if (this.velocity.x !== 0 || this.velocity.y !== 0) {
       this.inertiaAnimationFrame = requestAnimationFrame(this.updateInertia)
     }
