@@ -1,4 +1,5 @@
 import ClickDrag from "./DragAndZoom/ClickDrag"
+import "./index.scss"
 
 function main() {
   let video: HTMLElement | null = null
@@ -60,6 +61,7 @@ function main() {
     if (document.fullscreenElement) {
       observer.observe(targetNode, config)
       window.addEventListener("keydown", dragZoom.onKeyDown)
+      window.addEventListener("keyup", dragZoom.onKeyUp)
       video.addEventListener("timeupdate", dragZoom.onTimeUpdate)
       if (parentElement) {
         parentElement.addEventListener("mousedown", dragZoom.onMouseDown)
@@ -69,6 +71,7 @@ function main() {
       observer.disconnect()
       video.style.transform = ""
       window.removeEventListener("keydown", dragZoom.onKeyDown)
+      window.removeEventListener("keyup", dragZoom.onKeyUp)
       if (video) video.removeEventListener("timeupdate", dragZoom.onTimeUpdate)
       if (parentElement) {
         parentElement.removeEventListener("mousedown", dragZoom.onMouseDown)

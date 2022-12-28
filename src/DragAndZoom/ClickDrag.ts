@@ -108,6 +108,34 @@ class ClickDrag extends Drag {
       }
     }
   }
+  private removeControl = () => {
+    if (document.querySelector(`.ytf-control`)) {
+      document.querySelector(`.ytf-control`)!.remove()
+    }
+  }
+  private createControl = () => {
+    if (document.querySelector(`.ytf-control`)) {
+      document.querySelector(`.ytf-control`)!.remove()
+    }
+    const parentElement = document.querySelector(".html5-video-player")
+    if (!parentElement) return
+    const div = document.createElement("div")
+    div.classList.add(`ytf-control`)
+    const OriginalButton = document.createElement("button")
+    OriginalButton.textContent = "O"
+    OriginalButton.addEventListener("click", (e) => {
+      this.transformVideo("Reset")
+    })
+    const RotateButton = document.createElement("button")
+    RotateButton.textContent = "R"
+    RotateButton.addEventListener("click", (e) => {
+      this.transformVideo("RotationPlus")
+    })
+    div.appendChild(OriginalButton)
+    div.appendChild(RotateButton)
+    parentElement.appendChild(div)
+    console.log(parentElement)
+  }
   private createTip = (type: "start" | "end", percent: number) => {
     if (document.querySelector(`.ytf-loop-tip-${type}`)) {
       document.querySelector(`.ytf-loop-tip-${type}`)!.remove()
@@ -117,14 +145,7 @@ class ClickDrag extends Drag {
     const div = document.createElement("div")
     div.classList.add(`ytf-loop-tip-${type}`)
     div.classList.add(`ytf-loop-tip`)
-    div.style.position = "absolute"
-    div.style.zIndex = "200"
-    div.style.height = "100%"
-    div.style.top = "0px"
-    div.style.width = "4px"
     div.style.left = percent + "%"
-    div.style.transform = "translateX(-50%)"
-    div.style.backgroundColor = "#ffdc00"
     parentElement.appendChild(div)
   }
   deleteTip = (type: "start" | "end" | "all") => {
@@ -266,12 +287,19 @@ class ClickDrag extends Drag {
   onKeyDown = (e: KeyboardEvent) => {
     const video = this.getYoutubeVideo()
     if (e.altKey && video) {
+      this.createControl()
       const eCode = e.code
       if (this.isNumberPadCode(eCode)) {
         this.transformVideo(NumberToControlName[eCode])
       } else if (this.isVideoControlCode(eCode)) {
         this.controlVideo(video, eCode)
       }
+    }
+  }
+  onKeyUp = (e: KeyboardEvent) => {
+    const video = this.getYoutubeVideo()
+    if (e.code === "AltLeft" && video) {
+      this.removeControl()
     }
   }
   onMouseDown = (event: MouseEvent) => {

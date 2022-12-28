@@ -1,0 +1,33 @@
+.ytf-control {
+  --ytf-button-size: 32px;
+  position: absolute;
+  z-index: 200;
+  top: 64px;
+  left: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  button {
+    cursor: pointer;
+    font-size: 16px;
+    height: var(--ytf-button-size);
+    width: var(--ytf-button-size);
+    border-radius: 50%;
+    border: none;
+    color: rgb(255, 255, 255);
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(0, 118, 208);
+  }
+}
+.ytf-loop-tip {
+  position: absolute;
+  z-index: 200;
+  height: 100%;
+  top: 0px;
+  width: 4px;
+  transform: translateX(-50%);
+  background-color: rgb(255, 220, 0);
+}

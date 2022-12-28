@@ -12,7 +12,8 @@
   "content_scripts": [
     {
       "matches": ["https://*.youtube.com/*"],
-      "js": ["dist/index.js"]
+      "js": ["dist/index.js"],
+      "css": ["dist/index.css"]
     }
   ],
   "web_accessible_resources": [
