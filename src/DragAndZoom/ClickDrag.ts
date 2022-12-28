@@ -275,7 +275,7 @@ class ClickDrag extends Drag {
     }
   }
   onMouseDown = (event: MouseEvent) => {
-    if (!event.shiftKey) return
+    if (!event.altKey) return
     this.ts = this.getPosition()
     if (event.button === 1) {
       event.preventDefault()
@@ -302,7 +302,7 @@ class ClickDrag extends Drag {
     eventTarget.addEventListener("mouseleave", this.onEnd)
   }
   private onMove = (event: MouseEvent) => {
-    if (!event.shiftKey) return
+    if (!event.altKey) return
     if (!this.targetElement) return
     // 중첩 실행 문제 (성능) 해결 :: 굳이 할 필요없음.
     let func = this.eventElement
@@ -352,7 +352,7 @@ class ClickDrag extends Drag {
     this.isScale = false
   }
   onWheel = (event: WheelEvent) => {
-    if (!event.shiftKey) return
+    if (!event.altKey) return
     if (!this.targetElement) return
     event.preventDefault()
     this.ts = this.getPosition()
@@ -366,7 +366,7 @@ class ClickDrag extends Drag {
     let pointerX = (event.clientX - rec.left) / this.ts.scale
     let pointerY = (event.clientY - rec.top) / this.ts.scale
 
-    let delta = (event.deltaX ?? event.deltaY) * -1
+    let delta = event.deltaY * -1
     if (this.ts.scale === this.maxScale && delta > 0) {
       return
     }
