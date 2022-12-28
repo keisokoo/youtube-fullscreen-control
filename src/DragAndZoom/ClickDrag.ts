@@ -17,19 +17,19 @@ const NumberPadList = [
   "Numpad8",
   "Numpad9",
 
-  "KeyH", // left
-  "KeyJ", // down
-  "KeyK", // up
-  "KeyL", // right
+  "KeyW", // up
+  "KeyA", // left
+  "KeyS", // down
+  "KeyD", // right
 
-  "Equal", // plus
-  "Minus", // minus
+  "KeyE", // plus
+  "KeyQ", // minus
   "Digit0", // zoom reset
   "Semicolon", // position reset
 
+  "KeyR", // rotation
   "KeyO", // rotation
-  "KeyI", // rotation
-  "Quote", // reset all
+  "Backquote", // reset all
 ] as const
 type ControlCode = typeof NumberPadList[number]
 
@@ -49,17 +49,17 @@ const NumberToControlName = {
   Numpad9: "RightUp",
   NumpadMultiply: "RotationPlus",
   NumpadDivide: "RotationMinus",
-  KeyH: "Left",
-  KeyJ: "Down",
-  KeyK: "Up",
-  KeyL: "Right",
-  Equal: "ZoomIn",
-  Minus: "ZoomOut",
+  KeyW: "Up",
+  KeyA: "Left",
+  KeyS: "Down",
+  KeyD: "Right",
+  KeyE: "ZoomIn",
+  KeyQ: "ZoomOut",
   Digit0: "ZoomReset",
   Semicolon: "PositionReset",
-  KeyO: "RotationPlus",
-  KeyI: "RotationMinus",
-  Quote: "Reset",
+  KeyR: "RotationPlus",
+  KeyO: "RotationMinus",
+  Backquote: "Reset",
 } as {
   [key in ControlCode]: ControlNameType
 }
@@ -85,9 +85,9 @@ type ControlEvent = (controlName: ControlNameType) => void
 
 type allowAngle = 0 | 90 | 180 | 270 | -90 | -180 | -270
 const VideoControlList = {
-  BracketLeft: "LoopStart",
-  BracketRight: "LoopEnd",
-  Backslash: "ResetLoop",
+  Digit1: "LoopStart",
+  Digit2: "LoopEnd",
+  Digit3: "ResetLoop",
 } as const
 class ClickDrag extends Drag {
   onTimeUpdate = (e: Event) => {
@@ -134,7 +134,6 @@ class ClickDrag extends Drag {
     div.appendChild(OriginalButton)
     div.appendChild(RotateButton)
     parentElement.appendChild(div)
-    console.log(parentElement)
   }
   private createTip = (type: "start" | "end", percent: number) => {
     if (document.querySelector(`.ytf-loop-tip-${type}`)) {
@@ -307,8 +306,7 @@ class ClickDrag extends Drag {
     this.ts = this.getPosition()
     if (event.button === 1) {
       event.preventDefault()
-      this.ts.rotate = this.toggleRotation(this.ts.rotate)
-      this.setTransform()
+      this.transformVideo("Reset")
       return
     }
 
