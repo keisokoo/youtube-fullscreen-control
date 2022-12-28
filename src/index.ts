@@ -2,6 +2,7 @@ import ClickDrag from "./DragAndZoom/ClickDrag"
 
 function main() {
   let video: HTMLElement | null = null
+  let parentElement: HTMLElement | null = null
   let dragZoom: ClickDrag | null = null
   const targetNode = document.body
   const config = { attributes: true, childList: true, subtree: true }
@@ -36,18 +37,26 @@ function main() {
   const observer = new MutationObserver(callback)
 
   const fullScreenEvent = (e: Event) => {
-    video = getYoutubeVideo()
-    if (!video) return
-    if (!video.parentElement) return
-    const parentElement = video.parentElement
-    dragZoom = new ClickDrag(video, parentElement, {
-      before: () => {
-        observer.disconnect()
-      },
-      after: () => {
-        observer.observe(targetNode, config)
-      },
-    })
+    if (!video) {
+      video = getYoutubeVideo()
+    }
+    if (!parentElement) {
+      if (!video) return
+      if (!video.closest(".html5-video-player")) return
+      parentElement = video.closest(".html5-video-player")! as HTMLElement
+    }
+    if (!dragZoom) {
+      if (!video) return
+      if (!parentElement) return
+      dragZoom = new ClickDrag(video, parentElement, {
+        before: () => {
+          observer.disconnect()
+        },
+        after: () => {
+          observer.observe(targetNode, config)
+        },
+      })
+    }
     if (document.fullscreenElement) {
       observer.observe(targetNode, config)
       window.addEventListener("keydown", dragZoom.onKeyDown)
@@ -60,7 +69,7 @@ function main() {
       observer.disconnect()
       video.style.transform = ""
       window.removeEventListener("keydown", dragZoom.onKeyDown)
-      video.removeEventListener("timeupdate", dragZoom.onTimeUpdate)
+      if (video) video.removeEventListener("timeupdate", dragZoom.onTimeUpdate)
       if (parentElement) {
         parentElement.removeEventListener("mousedown", dragZoom.onMouseDown)
         parentElement.removeEventListener("wheel", dragZoom.onWheel)

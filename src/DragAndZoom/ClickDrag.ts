@@ -108,6 +108,35 @@ class ClickDrag extends Drag {
       }
     }
   }
+  private createTip = (type: "start" | "end", percent: number) => {
+    if (document.querySelector(`.ytf-loop-tip-${type}`)) {
+      document.querySelector(`.ytf-loop-tip-${type}`)!.remove()
+    }
+    const parentElement = document.querySelector(".ytp-progress-bar")
+    if (!parentElement) return
+    const div = document.createElement("div")
+    div.classList.add(`ytf-loop-tip-${type}`)
+    div.classList.add(`ytf-loop-tip`)
+    div.style.position = "absolute"
+    div.style.zIndex = "200"
+    div.style.height = "100%"
+    div.style.top = "0px"
+    div.style.width = "4px"
+    div.style.left = percent + "%"
+    div.style.transform = "translateX(-50%)"
+    div.style.backgroundColor = "#ffdc00"
+    parentElement.appendChild(div)
+  }
+  deleteTip = (type: "start" | "end" | "all") => {
+    if (type === "all") {
+      const divList = document.querySelectorAll(".ytf-loop-tip")
+      divList.forEach((el) => el.remove())
+      return
+    }
+    const div = document.querySelector(`.ytf-loop-tip-${type}`)
+    if (!div) return
+    div.remove()
+  }
   private controlVideo = (
     el: HTMLVideoElement,
     controlName: keyof typeof VideoControlList
@@ -116,13 +145,16 @@ class ClickDrag extends Drag {
     if (runCode === "LoopStart") {
       if (this.loopTime.end && this.loopTime.end < el.currentTime) return
       this.loopTime.start = el.currentTime
+      this.createTip("start", (this.loopTime.start / el.duration) * 100)
     }
     if (runCode === "LoopEnd") {
       if (this.loopTime.start && this.loopTime.start > el.currentTime) return
       this.loopTime.end = el.currentTime
+      this.createTip("end", (this.loopTime.end / el.duration) * 100)
     }
     if (runCode === "ResetLoop") {
       this.loopTime = { start: null, end: null }
+      this.deleteTip("all")
     }
   }
   private isVideoControlCode = (
@@ -322,6 +354,7 @@ class ClickDrag extends Drag {
   onWheel = (event: WheelEvent) => {
     if (!event.shiftKey) return
     if (!this.targetElement) return
+    event.preventDefault()
     this.ts = this.getPosition()
 
     let func = this.eventElement
