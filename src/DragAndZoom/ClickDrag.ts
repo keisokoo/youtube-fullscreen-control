@@ -485,12 +485,12 @@ class ClickDrag extends Drag {
   }
   onMouseDown = (event: MouseEvent) => {
     if (!this.checkFog()) {
-      return
+      return false
     }
-    event.stopPropagation()
+    if (event.preventDefault != undefined) event.preventDefault()
+    if (event.stopPropagation != undefined) event.stopPropagation()
     this.ts = this.getPosition()
     if (event.button === 2) {
-      event.preventDefault()
       this.transformVideo("Reset")
       return
     }
@@ -556,7 +556,11 @@ class ClickDrag extends Drag {
   }
   toggleStatus = (event: MouseEvent) => {
     if (event.button === 1) {
+      if (event.preventDefault != undefined) event.preventDefault()
+      if (event.stopPropagation != undefined) event.stopPropagation()
       this.toggleFog()
+      event.cancelBubble = false
+      return false
     }
   }
   private onEnd = (event: MouseEvent) => {

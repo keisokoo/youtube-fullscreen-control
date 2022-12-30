@@ -36,7 +36,6 @@ function main() {
     }
   }
   const observer = new MutationObserver(callback)
-
   const fullScreenEvent = (e: Event) => {
     if (!video) {
       video = getYoutubeVideo()
@@ -69,7 +68,7 @@ function main() {
           dragZoom.disableContextMenu
         )
         parentElement.addEventListener("mousedown", dragZoom.onMouseDown)
-        parentElement.addEventListener("mouseup", dragZoom.toggleStatus)
+        parentElement.addEventListener("mousedown", dragZoom.toggleStatus)
         parentElement.addEventListener("wheel", dragZoom.onWheel)
       }
     } else {
@@ -84,7 +83,7 @@ function main() {
           "contextmenu",
           dragZoom.disableContextMenu
         )
-        parentElement.removeEventListener("mouseup", dragZoom.toggleStatus)
+        parentElement.removeEventListener("mousedown", dragZoom.toggleStatus)
         parentElement.removeEventListener("mousedown", dragZoom.onMouseDown)
         parentElement.removeEventListener("wheel", dragZoom.onWheel)
       }
