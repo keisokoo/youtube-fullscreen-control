@@ -293,6 +293,12 @@ class ClickDrag extends Drag {
         }
         return
       }
+      if (e.metaKey) {
+        return
+      }
+      if (e.ctrlKey) {
+        return
+      }
       if (isKeyOf(ControlKeyList, eCode)) {
         this.transformVideo(ControlKeyList[eCode])
       } else if (isKeyOf(SpecialShortCutList, eCode)) {
