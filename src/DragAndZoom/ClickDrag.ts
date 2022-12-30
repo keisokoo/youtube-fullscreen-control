@@ -577,6 +577,13 @@ class ClickDrag extends Drag {
     cancelAnimationFrame(this.inertiaAnimationFrame)
     if (this.dragged && this.isDrag) {
       this.dragFinish()
+    }else{
+      const video = this.getYoutubeVideo()
+      if(video.paused){
+        video.play()
+      }else{
+        video.pause()
+      }
     }
     this.dragged = false
     this.isDrag = false
