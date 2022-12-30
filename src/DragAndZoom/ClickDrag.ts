@@ -111,7 +111,6 @@ class ClickDrag extends Drag {
       const on = document.createElement("div")
       on.classList.add("ytf-fog-on")
       div.classList.add("ytf-fog")
-      div.tabIndex = 0
       div.appendChild(on)
       wrap.appendChild(div)
     }
