@@ -7,7 +7,16 @@ export type translateValues = {
   rotate: number
   translate: XY
 }
-
+export const filterName = ["contrast", "saturate", "brightness"]
+export type FilterName = typeof filterName[number]
+export const isFilterName = (value: string): value is FilterName => {
+  return filterName.some((item) => item === value)
+}
+type FilterValueType = {
+  contrast: number
+  saturate: number
+  brightness: number
+}
 type LoopTimeType = { start: number | null; end: number | null }
 class ControlPosition {
   factor = 0.05
@@ -21,6 +30,11 @@ class ControlPosition {
       y: 0,
     },
   }
+  filter = {
+    contrast: 1,
+    saturate: 1,
+    brightness: 1,
+  } as { [key in FilterName]: number } & FilterValueType
   loopTime: LoopTimeType = { start: null, end: null }
   restrictPosition?: (current: XY, targetEl: DOMRect) => XY
   public before?: () => void
@@ -101,6 +115,14 @@ class ControlPosition {
       "scale" in value
     )
   }
+  private isFilter = (value: any): value is FilterValueType => {
+    return (
+      value !== undefined &&
+      "contrast" in value &&
+      "brightness" in value &&
+      "saturate" in value
+    )
+  }
   getPosition = (el?: HTMLElement) => {
     const matrix = new WebKitCSSMatrix(
       window.getComputedStyle(el ?? this.targetElement).transform
@@ -119,6 +141,7 @@ class ControlPosition {
   }
   loadTransform = () => {
     const tsString = localStorage.getItem("ytf-transform")
+    const filterString = localStorage.getItem("ytf-filter")
     if (tsString) {
       const parse = JSON.parse(tsString)
       if (this.isTranslateValues(parse)) {
@@ -126,11 +149,34 @@ class ControlPosition {
         this.setTransform()
       }
     }
+    if (filterString) {
+      const parse = JSON.parse(filterString)
+      if (this.isFilter(parse)) {
+        this.filter = parse
+        this.setFilter()
+      }
+    }
   }
   setTransform = () => {
     if (this.before) this.before()
     localStorage.setItem("ytf-transform", JSON.stringify(this.ts))
     this.targetElement.style.transform = `translate(${this.ts.translate.x}px,${this.ts.translate.y}px) scale(${this.ts.scale}) rotate(${this.ts.rotate}deg)`
+    if (this.after) this.after()
+  }
+  setFilter = () => {
+    if (this.before) this.before()
+    localStorage.setItem("ytf-filter", JSON.stringify(this.filter))
+    Object.keys(this.filter).forEach((keyName) => {
+      const spanTarget = document.querySelector(
+        `.ytf-${keyName}`
+      ) as HTMLSpanElement
+      if (spanTarget) {
+        spanTarget.textContent = String(
+          Math.floor(this.filter[keyName] * 100) / 100
+        )
+      }
+    })
+    this.targetElement.style.filter = `contrast(${this.filter.contrast}) saturate(${this.filter.saturate}) brightness(${this.filter.brightness})`
     if (this.after) this.after()
   }
   toggleRotation = (value: number) => {

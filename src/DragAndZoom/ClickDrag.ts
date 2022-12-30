@@ -24,8 +24,25 @@ const ControlTypeList = [
   "LeftUp",
   "Up",
   "RightUp",
+  "Cover",
+  "VCover",
+  "HCover",
+  "Center",
 ] as const
 type ControlNameType = typeof ControlTypeList[number]
+
+const FilterTypeList = [
+  "AddContrast",
+  "ResetContrast",
+  "SubtractContrast",
+  "AddBrightness",
+  "ResetBrightness",
+  "SubtractBrightness",
+  "AddSaturate",
+  "ResetSaturate",
+  "SubtractSaturate",
+] as const
+type FilterNameType = typeof FilterTypeList[number]
 
 const ControlKeyList = {
   KeyW: "Up",
@@ -74,6 +91,101 @@ const ShiftSpecialShortCutList = {
   KeyD: "ResetLoop",
 } as const
 class ClickDrag extends Drag {
+  controlElementList = [
+    {
+      text: "Initial",
+      onAction: (e: MouseEvent) => {
+        this.transformVideo("Reset")
+      },
+    },
+    {
+      text: "Rotate",
+      onAction: (e: MouseEvent) => {
+        this.transformVideo("RotationPlus")
+      },
+    },
+    {
+      text: "Empty",
+      onAction: (e: MouseEvent) => {},
+    },
+    {
+      text: "HCover",
+      onAction: (e: MouseEvent) => {
+        this.transformVideo("HCover")
+      },
+    },
+    {
+      text: "VCover",
+      onAction: (e: MouseEvent) => {
+        this.transformVideo("VCover")
+      },
+    },
+    {
+      text: "Empty",
+      onAction: (e: MouseEvent) => {},
+    },
+    {
+      text: "Contrast",
+      filter: "contrast",
+      onAction: (e: MouseEvent) => {
+        this.filterVideo("ResetContrast")
+      },
+      children: [
+        {
+          text: "+",
+          onAction: (e: MouseEvent) => this.filterVideo("AddContrast"),
+        },
+        {
+          text: "-",
+          onAction: (e: MouseEvent) => this.filterVideo("SubtractContrast"),
+        },
+      ],
+    },
+    {
+      text: "Brightness",
+      filter: "brightness",
+      onAction: (e: MouseEvent) => {
+        this.filterVideo("ResetBrightness")
+      },
+      children: [
+        {
+          text: "+",
+          onAction: (e: MouseEvent) => this.filterVideo("AddBrightness"),
+        },
+        {
+          text: "-",
+          onAction: (e: MouseEvent) => this.filterVideo("SubtractBrightness"),
+        },
+      ],
+    },
+    {
+      text: "Saturate",
+      filter: "saturate",
+      onAction: (e: MouseEvent) => {
+        this.filterVideo("ResetSaturate")
+      },
+      children: [
+        {
+          text: "+",
+          onAction: (e: MouseEvent) => this.filterVideo("AddSaturate"),
+        },
+        {
+          text: "-",
+          onAction: (e: MouseEvent) => this.filterVideo("SubtractSaturate"),
+        },
+      ],
+    },
+    {
+      text: "Empty",
+      onAction: (e: MouseEvent) => {},
+    },
+    {
+      text: "Close",
+      onAction: (e: MouseEvent) => {
+        this.toggleFog()
+      },
+    },
+  ]
   onTimeUpdate = (e: Event) => {
     const videoElement = e.currentTarget as HTMLVideoElement
     if (!this.loopTime) return
@@ -103,44 +215,60 @@ class ClickDrag extends Drag {
     if (fog) {
       wrap.classList.remove("fog")
       fog.remove()
-      this.removeControl()
     } else if (!remove) {
-      this.createControl()
       wrap.classList.add("fog")
       const div = document.createElement("div")
       const on = document.createElement("div")
       on.classList.add("ytf-fog-on")
+      on.onclick = () => {
+        if (div.classList.contains("active")) {
+          div.classList.remove("active")
+        } else {
+          div.classList.add("active")
+        }
+      }
       div.classList.add("ytf-fog")
       div.appendChild(on)
+      const controlDiv = document.createElement("div")
+      controlDiv.classList.add(`ytf-control`)
+      this.controlElementList.forEach((item) => {
+        const controlItem = document.createElement("div")
+        if (item.children) {
+          controlItem.classList.add("ytf-button-row")
+          const titleItem = document.createElement("div")
+          const spanItem = document.createElement("span")
+          spanItem.classList.add(`ytf-${item.filter}`)
+          titleItem.classList.add("ytf-button")
+          titleItem.classList.add("ytf-title")
+          titleItem.textContent = item.text
+          titleItem.onclick = item.onAction
+          spanItem.textContent = String(
+            Math.floor(this.filter[item.filter] * 100) / 100
+          )
+          titleItem.appendChild(spanItem)
+          controlItem.appendChild(titleItem)
+          item.children.forEach((child) => {
+            const childItem = document.createElement("div")
+            childItem.classList.add("ytf-button")
+            childItem.classList.add("ytf-child")
+            childItem.textContent = child.text
+            childItem.onclick = child.onAction
+            controlItem.appendChild(childItem)
+          })
+        } else {
+          controlItem.classList.add("ytf-button")
+          controlItem.textContent = item.text
+          if (item.text !== "Empty") {
+            controlItem.onclick = item.onAction
+          } else {
+            controlItem.classList.add("empty")
+          }
+        }
+        controlDiv.appendChild(controlItem)
+      })
+      div.appendChild(controlDiv)
       wrap.appendChild(div)
     }
-  }
-  private removeControl = () => {
-    if (document.querySelector(`.ytf-control`)) {
-      document.querySelector(`.ytf-control`)!.remove()
-    }
-  }
-  private createControl = () => {
-    if (document.querySelector(`.ytf-control`)) {
-      document.querySelector(`.ytf-control`)!.remove()
-    }
-    const parentElement = document.querySelector("#player-theater-container")
-    if (!parentElement) return
-    const div = document.createElement("div")
-    div.classList.add(`ytf-control`)
-    const OriginalButton = document.createElement("button")
-    OriginalButton.textContent = "O"
-    OriginalButton.addEventListener("click", (e) => {
-      this.transformVideo("Reset")
-    })
-    const RotateButton = document.createElement("button")
-    RotateButton.textContent = "R"
-    RotateButton.addEventListener("click", (e) => {
-      this.transformVideo("RotationPlus")
-    })
-    div.appendChild(OriginalButton)
-    div.appendChild(RotateButton)
-    parentElement.appendChild(div)
   }
   private createTip = (type: "start" | "end", percent: number) => {
     if (document.querySelector(`.ytf-loop-tip-${type}`)) {
@@ -164,19 +292,17 @@ class ClickDrag extends Drag {
     if (!div) return
     div.remove()
   }
-  private controlVideo = (
-    el: HTMLVideoElement,
-    runCode: typeof ShortCutList[number]
-  ) => {
+  private controlVideo = (runCode: typeof ShortCutList[number]) => {
+    const video = this.getYoutubeVideo()
     if (runCode === "LoopStart") {
-      if (this.loopTime.end && this.loopTime.end < el.currentTime) return
-      this.loopTime.start = el.currentTime
-      this.createTip("start", (this.loopTime.start / el.duration) * 100)
+      if (this.loopTime.end && this.loopTime.end < video.currentTime) return
+      this.loopTime.start = video.currentTime
+      this.createTip("start", (this.loopTime.start / video.duration) * 100)
     }
     if (runCode === "LoopEnd") {
-      if (this.loopTime.start && this.loopTime.start > el.currentTime) return
-      this.loopTime.end = el.currentTime
-      this.createTip("end", (this.loopTime.end / el.duration) * 100)
+      if (this.loopTime.start && this.loopTime.start > video.currentTime) return
+      this.loopTime.end = video.currentTime
+      this.createTip("end", (this.loopTime.end / video.duration) * 100)
     }
     if (runCode === "ResetLoop") {
       this.loopTime = { start: null, end: null }
@@ -216,8 +342,40 @@ class ClickDrag extends Drag {
       nextY,
     }
   }
+  private filterVideo = (filterAction: FilterNameType) => {
+    if (filterAction.includes("Brightness")) {
+      if (filterAction.includes("Add")) {
+        this.filter.brightness += 0.02
+      } else if (filterAction.includes("Subtract")) {
+        this.filter.brightness -= 0.02
+      } else {
+        this.filter.brightness = 1
+      }
+    }
+    if (filterAction.includes("Contrast")) {
+      if (filterAction.includes("Add")) {
+        this.filter.contrast += 0.02
+      } else if (filterAction.includes("Subtract")) {
+        this.filter.contrast -= 0.02
+      } else {
+        this.filter.contrast = 1
+      }
+    }
+    if (filterAction.includes("Saturate")) {
+      if (filterAction.includes("Add")) {
+        this.filter.saturate += 0.02
+      } else if (filterAction.includes("Subtract")) {
+        this.filter.saturate -= 0.02
+      } else {
+        this.filter.saturate = 1
+      }
+    }
+    this.setFilter()
+  }
   private transformVideo: ControlEvent = (controlName) => {
-    let currentPosition = this.getPosition()
+    const currentPosition = this.getPosition()
+    const video = this.getYoutubeVideo()
+    const videoBounding = video.getBoundingClientRect()
     let nextScale = currentPosition.scale
     let nextX = currentPosition.translate.x
     let nextY = currentPosition.translate.y
@@ -243,6 +401,16 @@ class ClickDrag extends Drag {
     if (controlName === "PositionReset") {
       nextX = 0
       nextY = 0
+    }
+    if (controlName === "HCover") {
+      nextX = 0
+      nextY = 0
+      nextScale = window.innerWidth / (videoBounding.width / this.ts.scale)
+    }
+    if (controlName === "VCover") {
+      nextX = 0
+      nextY = 0
+      nextScale = window.innerHeight / (videoBounding.height / this.ts.scale)
     }
     if (controlName === "Reset") {
       nextX = 0
@@ -288,7 +456,7 @@ class ClickDrag extends Drag {
       }
       if (e.shiftKey) {
         if (isKeyOf(ShiftSpecialShortCutList, eCode) && e.shiftKey) {
-          this.controlVideo(video, ShiftSpecialShortCutList[eCode])
+          this.controlVideo(ShiftSpecialShortCutList[eCode])
         }
         return
       }
@@ -301,7 +469,7 @@ class ClickDrag extends Drag {
       if (isKeyOf(ControlKeyList, eCode)) {
         this.transformVideo(ControlKeyList[eCode])
       } else if (isKeyOf(SpecialShortCutList, eCode)) {
-        this.controlVideo(video, SpecialShortCutList[eCode])
+        this.controlVideo(SpecialShortCutList[eCode])
       } else if (e.code === "KeyZ") {
         this.toggleFog()
       }
@@ -328,6 +496,8 @@ class ClickDrag extends Drag {
     }
     cancelAnimationFrame(this.inertiaAnimationFrame)
     if (event.button !== 0) return
+    const currentTarget = document.querySelector(".ytf-fog") as HTMLElement
+    if (currentTarget) currentTarget.style.cursor = "grabbing"
     this.isDrag = true
     this.isScale = false
     this.startPoint = {
@@ -393,6 +563,8 @@ class ClickDrag extends Drag {
     if (!this.checkFog()) return
     event.stopPropagation()
     event.preventDefault()
+    const currentTarget = document.querySelector(".ytf-fog") as HTMLElement
+    if (currentTarget) currentTarget.style.cursor = ""
     const eventTarget = this.eventElement ?? this.targetElement
     eventTarget.removeEventListener("mousemove", this.onMove)
     eventTarget.removeEventListener("mouseup", this.onEnd)

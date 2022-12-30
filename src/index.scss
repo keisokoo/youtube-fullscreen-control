@@ -1,25 +1,73 @@
+@keyframes blip {
+  0% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0.8;
+  }
+}
 .ytf-control {
+  display: none;
   --ytf-button-size: 32px;
   position: absolute;
   z-index: 200;
   top: 64px;
   left: 32px;
-  display: flex;
   flex-direction: column;
-  gap: 16px;
-  button {
-    cursor: pointer;
-    font-size: 16px;
-    height: var(--ytf-button-size);
-    width: var(--ytf-button-size);
-    border-radius: 50%;
-    border: none;
-    color: rgb(255, 255, 255);
-    font-weight: bold;
+  gap: 8px;
+  padding: 8px;
+  background-color: transparent;
+  backdrop-filter: blur(6px);
+  border-radius: 8px;
+  .ytf-button-row {
     display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+  .ytf-button {
+    user-select: none;
+    font-size: 14px;
+    background-color: #fff6;
+    color: #000;
+    padding: 6px 8px;
+    border-radius: 4px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.3s;
+    &:hover {
+      background-color: rgb(0 0 0 / 30%);
+    }
+    &:active {
+      opacity: 0.3;
+    }
+    &.empty {
+      cursor: default;
+      padding: 0px;
+      height: 1px;
+      font-size: 1px;
+      opacity: 0;
+      &:active {
+        opacity: 0;
+      }
+    }
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    background-color: rgb(0, 118, 208);
+    &.ytf-title {
+      width: 105px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-direction: row;
+      gap: 4px;
+      & > span {
+        padding-right: 8px;
+      }
+    }
+    &.ytf-child {
+      width: 24px;
+    }
   }
 }
 .ytf-loop-tip {
@@ -33,6 +81,7 @@
 }
 #player-theater-container {
   .ytf-fog {
+    cursor: grab;
     position: fixed;
     top: 0px;
     left: 0px;
@@ -40,6 +89,7 @@
     height: 100%;
     z-index: 9999;
     .ytf-fog-on {
+      cursor: pointer;
       --ytf-fog-size: 16px;
       height: var(--ytf-fog-size);
       width: var(--ytf-fog-size);
@@ -48,7 +98,16 @@
       background-color: rgb(223, 4, 0);
       position: absolute;
       top: 32px;
-      right: 32px;
+      left: 32px;
+      animation: blip 2.2s ease 0.2s infinite alternate forwards;
+    }
+    &.active {
+      .ytf-fog-on {
+        animation: none;
+      }
+      .ytf-control {
+        display: flex;
+      }
     }
   }
   &.fog {
