@@ -43,8 +43,8 @@ function main() {
     }
     if (!parentElement) {
       if (!video) return
-      if (!video.closest(".html5-video-player")) return
-      parentElement = video.closest(".html5-video-player")! as HTMLElement
+      if (!video.closest("#player-theater-container")) return
+      parentElement = video.closest("#player-theater-container")! as HTMLElement
     }
     if (!dragZoom) {
       if (!video) return
@@ -64,16 +64,27 @@ function main() {
       window.addEventListener("keyup", dragZoom.onKeyUp)
       video.addEventListener("timeupdate", dragZoom.onTimeUpdate)
       if (parentElement) {
+        parentElement.addEventListener(
+          "contextmenu",
+          dragZoom.disableContextMenu
+        )
         parentElement.addEventListener("mousedown", dragZoom.onMouseDown)
+        parentElement.addEventListener("mouseup", dragZoom.toggleStatus)
         parentElement.addEventListener("wheel", dragZoom.onWheel)
       }
     } else {
       observer.disconnect()
+      dragZoom.toggleFog(true)
       video.style.transform = ""
       window.removeEventListener("keydown", dragZoom.onKeyDown)
       window.removeEventListener("keyup", dragZoom.onKeyUp)
       if (video) video.removeEventListener("timeupdate", dragZoom.onTimeUpdate)
       if (parentElement) {
+        parentElement.removeEventListener(
+          "contextmenu",
+          dragZoom.disableContextMenu
+        )
+        parentElement.removeEventListener("mouseup", dragZoom.toggleStatus)
         parentElement.removeEventListener("mousedown", dragZoom.onMouseDown)
         parentElement.removeEventListener("wheel", dragZoom.onWheel)
       }

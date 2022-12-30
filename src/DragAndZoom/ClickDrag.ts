@@ -1,67 +1,12 @@
 import Drag from "./Drag"
 
-const NumberPadList = [
-  "NumpadMultiply",
-  "NumpadDivide",
-  "NumpadDecimal",
-  "NumpadAdd",
-  "NumpadSubtract",
-  "Numpad0",
-  "Numpad1",
-  "Numpad2",
-  "Numpad3",
-  "Numpad4",
-  "Numpad5",
-  "Numpad6",
-  "Numpad7",
-  "Numpad8",
-  "Numpad9",
-
-  "KeyW", // up
-  "KeyA", // left
-  "KeyS", // down
-  "KeyD", // right
-
-  "KeyE", // plus
-  "KeyQ", // minus
-  "Digit0", // zoom reset
-  "Semicolon", // position reset
-
-  "KeyR", // rotation
-  "KeyO", // rotation
-  "Backquote", // reset all
-] as const
-type ControlCode = typeof NumberPadList[number]
-
-const NumberToControlName = {
-  NumpadDecimal: "ZoomReset",
-  NumpadAdd: "ZoomIn",
-  NumpadSubtract: "ZoomOut",
-  Numpad0: "Reset",
-  Numpad1: "LeftDown",
-  Numpad2: "Down",
-  Numpad3: "RightDown",
-  Numpad4: "Left",
-  Numpad5: "PositionReset",
-  Numpad6: "Right",
-  Numpad7: "LeftUp",
-  Numpad8: "Up",
-  Numpad9: "RightUp",
-  NumpadMultiply: "RotationPlus",
-  NumpadDivide: "RotationMinus",
-  KeyW: "Up",
-  KeyA: "Left",
-  KeyS: "Down",
-  KeyD: "Right",
-  KeyE: "ZoomIn",
-  KeyQ: "ZoomOut",
-  Digit0: "ZoomReset",
-  Semicolon: "PositionReset",
-  KeyR: "RotationPlus",
-  KeyO: "RotationMinus",
-  Backquote: "Reset",
-} as {
-  [key in ControlCode]: ControlNameType
+const isKeyOf = <T extends object>(obj: T, value: any): value is keyof T => {
+  return (
+    !!value &&
+    (Object.keys(obj) as Array<keyof T>).some(
+      (item) => item === (value as keyof T)
+    )
+  )
 }
 const ControlTypeList = [
   "RotationPlus",
@@ -81,13 +26,52 @@ const ControlTypeList = [
   "RightUp",
 ] as const
 type ControlNameType = typeof ControlTypeList[number]
+
+const ControlKeyList = {
+  KeyW: "Up",
+  KeyA: "Left",
+  KeyS: "Down",
+  KeyD: "Right",
+  KeyE: "ZoomIn",
+  KeyQ: "ZoomOut",
+  KeyR: "RotationPlus",
+  Backquote: "Reset",
+} as const
+type ControlKeyCode = keyof typeof ControlKeyList
+
+const NumberPadList = {
+  NumpadDecimal: "ZoomReset",
+  NumpadAdd: "ZoomIn",
+  NumpadSubtract: "ZoomOut",
+  Numpad0: "Reset",
+  Numpad1: "LeftDown",
+  Numpad2: "Down",
+  Numpad3: "RightDown",
+  Numpad4: "Left",
+  Numpad5: "PositionReset",
+  Numpad6: "Right",
+  Numpad7: "LeftUp",
+  Numpad8: "Up",
+  Numpad9: "RightUp",
+  NumpadMultiply: "RotationPlus",
+  NumpadDivide: "RotationMinus",
+} as const
+type NumberKeyCode = keyof typeof NumberPadList
+type NumberCode = typeof NumberPadList[keyof typeof NumberPadList]
+
 type ControlEvent = (controlName: ControlNameType) => void
 
 type allowAngle = 0 | 90 | 180 | 270 | -90 | -180 | -270
-const VideoControlList = {
-  Digit1: "LoopStart",
-  Digit2: "LoopEnd",
-  Digit3: "ResetLoop",
+const ShortCutList = ["LoopStart", "LoopEnd", "ResetLoop"] as const
+const SpecialShortCutList = {
+  BracketLeft: "LoopStart",
+  BracketRight: "LoopEnd",
+  Backslash: "ResetLoop",
+} as const
+const ShiftSpecialShortCutList = {
+  KeyA: "LoopStart",
+  KeyS: "LoopEnd",
+  KeyD: "ResetLoop",
 } as const
 class ClickDrag extends Drag {
   onTimeUpdate = (e: Event) => {
@@ -108,6 +92,30 @@ class ClickDrag extends Drag {
       }
     }
   }
+  private checkFog = () => {
+    const fog = document.querySelector(".ytf-fog")
+    return !!fog
+  }
+  toggleFog = (remove?: boolean) => {
+    const wrap = document.querySelector("#player-theater-container")
+    if (!wrap) return
+    const fog = document.querySelector(".ytf-fog")
+    if (fog) {
+      wrap.classList.remove("fog")
+      fog.remove()
+      this.removeControl()
+    } else if (!remove) {
+      this.createControl()
+      wrap.classList.add("fog")
+      const div = document.createElement("div")
+      const on = document.createElement("div")
+      on.classList.add("ytf-fog-on")
+      div.classList.add("ytf-fog")
+      div.tabIndex = 0
+      div.appendChild(on)
+      wrap.appendChild(div)
+    }
+  }
   private removeControl = () => {
     if (document.querySelector(`.ytf-control`)) {
       document.querySelector(`.ytf-control`)!.remove()
@@ -117,7 +125,7 @@ class ClickDrag extends Drag {
     if (document.querySelector(`.ytf-control`)) {
       document.querySelector(`.ytf-control`)!.remove()
     }
-    const parentElement = document.querySelector(".html5-video-player")
+    const parentElement = document.querySelector("#player-theater-container")
     if (!parentElement) return
     const div = document.createElement("div")
     div.classList.add(`ytf-control`)
@@ -159,9 +167,8 @@ class ClickDrag extends Drag {
   }
   private controlVideo = (
     el: HTMLVideoElement,
-    controlName: keyof typeof VideoControlList
+    runCode: typeof ShortCutList[number]
   ) => {
-    const runCode = VideoControlList[controlName]
     if (runCode === "LoopStart") {
       if (this.loopTime.end && this.loopTime.end < el.currentTime) return
       this.loopTime.start = el.currentTime
@@ -176,16 +183,6 @@ class ClickDrag extends Drag {
       this.loopTime = { start: null, end: null }
       this.deleteTip("all")
     }
-  }
-  private isVideoControlCode = (
-    value: string
-  ): value is keyof typeof VideoControlList => {
-    return (
-      !!value &&
-      (
-        Object.keys(VideoControlList) as Array<keyof typeof VideoControlList>
-      ).some((item) => item === (value as keyof typeof VideoControlList))
-    )
   }
   private stringCheck = (target: string, value: string) => {
     return target.includes(value)
@@ -274,9 +271,6 @@ class ClickDrag extends Drag {
     }
     this.setTransform()
   }
-  private isNumberPadCode = (value: string): value is ControlCode => {
-    return value !== undefined && NumberPadList.includes(value as any)
-  }
   private getYoutubeVideo() {
     const video = document.querySelector(
       "video:not(#video-preview-container video)"
@@ -285,32 +279,50 @@ class ClickDrag extends Drag {
   }
   onKeyDown = (e: KeyboardEvent) => {
     const video = this.getYoutubeVideo()
-    if (e.altKey && video) {
-      this.createControl()
+    if (video) {
       const eCode = e.code
-      if (this.isNumberPadCode(eCode)) {
-        this.transformVideo(NumberToControlName[eCode])
-      } else if (this.isVideoControlCode(eCode)) {
-        this.controlVideo(video, eCode)
+      if (e.altKey) {
+        if (isKeyOf(NumberPadList, eCode) && e.altKey) {
+          this.transformVideo(NumberPadList[eCode])
+        }
+        return
+      }
+      if (e.shiftKey) {
+        if (isKeyOf(ShiftSpecialShortCutList, eCode) && e.shiftKey) {
+          this.controlVideo(video, ShiftSpecialShortCutList[eCode])
+        }
+        return
+      }
+      if (isKeyOf(ControlKeyList, eCode)) {
+        this.transformVideo(ControlKeyList[eCode])
+      } else if (isKeyOf(SpecialShortCutList, eCode)) {
+        this.controlVideo(video, SpecialShortCutList[eCode])
+      } else if (e.code === "KeyZ") {
+        this.toggleFog()
       }
     }
   }
   onKeyUp = (e: KeyboardEvent) => {
     const video = this.getYoutubeVideo()
-    if (e.code === "AltLeft" && video) {
-      this.removeControl()
-    }
+  }
+  disableContextMenu = (event: MouseEvent) => {
+    if (!this.checkFog()) return
+    if (event.preventDefault != undefined) event.preventDefault()
+    if (event.stopPropagation != undefined) event.stopPropagation()
   }
   onMouseDown = (event: MouseEvent) => {
-    if (!event.altKey) return
+    if (!this.checkFog()) {
+      return
+    }
+    event.stopPropagation()
     this.ts = this.getPosition()
-    if (event.button === 1) {
+    if (event.button === 2) {
       event.preventDefault()
       this.transformVideo("Reset")
       return
     }
-
     cancelAnimationFrame(this.inertiaAnimationFrame)
+    if (event.button !== 0) return
     this.isDrag = true
     this.isScale = false
     this.startPoint = {
@@ -328,7 +340,7 @@ class ClickDrag extends Drag {
     eventTarget.addEventListener("mouseleave", this.onEnd)
   }
   private onMove = (event: MouseEvent) => {
-    if (!event.altKey) return
+    if (!this.checkFog()) return
     if (!this.targetElement) return
     // 중첩 실행 문제 (성능) 해결 :: 굳이 할 필요없음.
     let func = this.eventElement
@@ -354,8 +366,9 @@ class ClickDrag extends Drag {
       y: this.ts.translate.y - oldY,
     }
     if (
-      Math.abs(this.velocity.x) > this.threshold ||
-      Math.abs(this.velocity.y) > this.threshold
+      Math.abs(this.previousPosition.x - this.ts.translate.x) >
+        this.threshold ||
+      Math.abs(this.previousPosition.y - this.ts.translate.x) > this.threshold
     )
       this.dragged = true
     // 핀치 이벤트
@@ -366,7 +379,15 @@ class ClickDrag extends Drag {
       this.targetElement.ontouchmove = func
     }
   }
+  toggleStatus = (event: MouseEvent) => {
+    if (event.button === 1) {
+      this.toggleFog()
+    }
+  }
   private onEnd = (event: MouseEvent) => {
+    if (!this.checkFog()) return
+    event.stopPropagation()
+    event.preventDefault()
     const eventTarget = this.eventElement ?? this.targetElement
     eventTarget.removeEventListener("mousemove", this.onMove)
     eventTarget.removeEventListener("mouseup", this.onEnd)
@@ -381,7 +402,7 @@ class ClickDrag extends Drag {
     this.isScale = false
   }
   onWheel = (event: WheelEvent) => {
-    if (!event.altKey) return
+    if (!this.checkFog()) return
     if (!this.targetElement) return
     event.preventDefault()
     this.ts = this.getPosition()
