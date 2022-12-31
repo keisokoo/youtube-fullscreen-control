@@ -88,11 +88,12 @@ type NumberCode = typeof NumberPadList[keyof typeof NumberPadList]
 type ControlEvent = (controlName: ControlNameType) => void
 
 type allowAngle = 0 | 90 | 180 | 270 | -90 | -180 | -270
-const ShortCutList = ["LoopStart", "LoopEnd", "ResetLoop"] as const
+const ShortCutList = ["LoopStart", "LoopEnd", "ResetLoop", "Playback"] as const
 const SpecialShortCutList = {
   BracketLeft: "LoopStart",
   BracketRight: "LoopEnd",
   Backslash: "ResetLoop",
+  Playback: "Playback",
 } as const
 const ShiftSpecialShortCutList = {
   KeyA: "LoopStart",
@@ -327,6 +328,13 @@ class ClickDrag extends Drag {
       this.loopTime = { start: null, end: null }
       this.deleteTip("all")
     }
+    if (runCode === "Playback") {
+      if (video.paused) {
+        video.play()
+      } else {
+        video.pause()
+      }
+    }
   }
   private stringCheck = (target: string, value: string) => {
     return target.includes(value)
@@ -463,6 +471,15 @@ class ClickDrag extends Drag {
     ) as HTMLVideoElement
     return video
   }
+  private handleControl(eCode: string) {
+    if (isKeyOf(ControlKeyList, eCode)) {
+      this.transformVideo(ControlKeyList[eCode])
+    } else if (isKeyOf(SpecialShortCutList, eCode)) {
+      this.controlVideo(SpecialShortCutList[eCode])
+    } else if (eCode === "KeyZ") {
+      this.toggleFog()
+    }
+  }
   onKeyDown = (e: KeyboardEvent) => {
     const video = this.getYoutubeVideo()
     if (video) {
@@ -485,13 +502,7 @@ class ClickDrag extends Drag {
       if (e.ctrlKey) {
         return
       }
-      if (isKeyOf(ControlKeyList, eCode)) {
-        this.transformVideo(ControlKeyList[eCode])
-      } else if (isKeyOf(SpecialShortCutList, eCode)) {
-        this.controlVideo(SpecialShortCutList[eCode])
-      } else if (e.code === "KeyZ") {
-        this.toggleFog()
-      }
+      this.handleControl(eCode)
     }
   }
   onKeyUp = (e: KeyboardEvent) => {
@@ -514,6 +525,7 @@ class ClickDrag extends Drag {
   nextVideoTime = 0
   isSeek = false
   isPausedBeforeSeek = false
+  ballControl: { keyCode: string; label: string } | null = null
   private createTimeline = (event: MouseEvent) => {
     const fog = document.querySelector(".ytf-fog")
     const before = document.querySelector(".ytf-timeCircle")
@@ -533,6 +545,18 @@ class ClickDrag extends Drag {
       fog.appendChild(timeCircle)
     }
   }
+  getDirection = (coords: [number, number]) => {
+    const directions = (Math.atan2(coords[1], coords[0]) / Math.PI) * 180 + 180
+    if (directions >= 45 && directions < 135) {
+      return "up"
+    } else if (directions >= 135 && directions < 225) {
+      return "right"
+    } else if (directions >= 225 && directions < 315) {
+      return "down"
+    } else {
+      return "left"
+    }
+  }
   onMouseDown = (event: MouseEvent) => {
     if (!this.checkFog()) {
       return false
@@ -542,6 +566,10 @@ class ClickDrag extends Drag {
     const eventTarget = this.eventElement ?? this.targetElement
     this.ts = this.getPosition()
     if (event.button === 2) {
+      this.startPoint = {
+        x: event.pageX,
+        y: event.pageY,
+      }
       this.createTimeline(event)
       const video = this.getYoutubeVideo()
       this.isPausedBeforeSeek = video.paused
@@ -586,16 +614,29 @@ class ClickDrag extends Drag {
   moveSeek = (event: MouseEvent) => {
     if (!this.checkFog()) return
     if (!this.targetElement) return
+    const video = this.getYoutubeVideo()
     const x = event.pageX
     const y = event.pageY
-    const oldX = this.ts.translate.x
-    const oldY = this.ts.translate.y
-    const isInvert = false
-    const invert = isInvert ? 1 : -1
+    const xDiff = x - this.startPoint.x
+    const yDiff = y - this.startPoint.y
+    const directions = this.getDirection([xDiff, yDiff])
     if (this.isSeek) {
       const currentTarget = document.querySelector(".ytf-fog") as HTMLElement
       const currentLeft = x - this.startMousePosition.left
-      if (currentLeft < -this.seekThreshold) {
+      const currentTop = y - this.startPoint.y
+      if (currentTop < -this.seekThreshold && directions === "up") {
+        if (currentTarget) currentTarget.style.cursor = "n-resize"
+        this.ballControl = {
+          keyCode: "Backquote",
+          label: "Reset",
+        }
+      } else if (currentTop > this.seekThreshold && directions === "down") {
+        if (currentTarget) currentTarget.style.cursor = "s-resize"
+        this.ballControl = {
+          keyCode: "Playback",
+          label: video.paused ? "Play" : "Pause",
+        }
+      } else if (currentLeft < -this.seekThreshold && directions === "left") {
         if (currentTarget) currentTarget.style.cursor = "w-resize"
         // left
         const calculateX = x - this.startMousePosition.left + this.seekThreshold
@@ -604,7 +645,7 @@ class ClickDrag extends Drag {
           (this.startMousePosition.left - this.seekThreshold + calculateX) /
           (this.startMousePosition.left - this.seekThreshold)
         this.nextVideoTime = this.videoTimeline.currentTime * leftPercent
-      } else if (currentLeft > this.seekThreshold) {
+      } else if (currentLeft > this.seekThreshold && directions === "right") {
         if (currentTarget) currentTarget.style.cursor = "e-resize"
         const calculateX = x - this.startMousePosition.left - this.seekThreshold
         // right
@@ -619,8 +660,8 @@ class ClickDrag extends Drag {
       } else {
         if (currentTarget) currentTarget.style.cursor = ""
         this.nextVideoTime = this.videoTimeline.currentTime
+        this.ballControl = null
       }
-      const video = this.getYoutubeVideo()
       if (
         this.nextVideoTime &&
         this.nextVideoTime !== this.videoTimeline.currentTime
@@ -633,13 +674,17 @@ class ClickDrag extends Drag {
       ) {
         video.currentTime = this.videoTimeline.currentTime
         this.nextVideoTime = this.videoTimeline.currentTime
+        if (!this.isPausedBeforeSeek) {
+          video.play()
+        }
       }
       const timeCircleSpan = document.querySelector(".ytf-timeCircle > span")
       const circleTimeline = document.querySelector(
         ".ytf-circle-timeline"
       ) as HTMLElement
       if (timeCircleSpan)
-        timeCircleSpan.textContent = toHHMMSS(this.nextVideoTime)
+        timeCircleSpan.textContent =
+          this.ballControl?.label ?? toHHMMSS(this.nextVideoTime)
       if (circleTimeline)
         circleTimeline.style.width =
           String((this.nextVideoTime / this.videoTimeline.duration) * 100) + "%"
@@ -659,7 +704,10 @@ class ClickDrag extends Drag {
       if (video.paused && !this.isPausedBeforeSeek) {
         video.play()
       }
-      // video.currentTime = this.nextVideoTime
+    }
+    if (this.ballControl) {
+      this.handleControl(this.ballControl.keyCode)
+      this.ballControl = null
     }
     eventTarget.removeEventListener("mousemove", this.moveSeek)
     eventTarget.removeEventListener("mouseup", this.endSeek)
