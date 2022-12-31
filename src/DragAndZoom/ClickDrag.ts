@@ -778,12 +778,12 @@ class ClickDrag extends Drag {
     if (this.dragged && this.isDrag) {
       this.dragFinish()
     } else {
-      const video = this.getYoutubeVideo()
-      if (video.paused) {
-        video.play()
-      } else {
-        video.pause()
-      }
+      // const video = this.getYoutubeVideo()
+      // if (video.paused) {
+      //   video.play()
+      // } else {
+      //   video.pause()
+      // }
     }
     this.dragged = false
     this.isDrag = false
