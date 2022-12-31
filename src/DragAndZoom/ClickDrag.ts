@@ -105,12 +105,14 @@ class ClickDrag extends Drag {
     {
       text: "Initial",
       onAction: (e: MouseEvent) => {
+        e.stopPropagation()
         this.transformVideo("Reset")
       },
     },
     {
       text: "Rotate",
       onAction: (e: MouseEvent) => {
+        e.stopPropagation()
         this.transformVideo("RotationPlus")
       },
     },
@@ -121,12 +123,14 @@ class ClickDrag extends Drag {
     {
       text: "HCover",
       onAction: (e: MouseEvent) => {
+        e.stopPropagation()
         this.transformVideo("HCover")
       },
     },
     {
       text: "VCover",
       onAction: (e: MouseEvent) => {
+        e.stopPropagation()
         this.transformVideo("VCover")
       },
     },
@@ -138,16 +142,23 @@ class ClickDrag extends Drag {
       text: "Contrast",
       filter: "contrast",
       onAction: (e: MouseEvent) => {
+        e.stopPropagation()
         this.filterVideo("ResetContrast")
       },
       children: [
         {
           text: "+",
-          onAction: (e: MouseEvent) => this.filterVideo("AddContrast"),
+          onAction: (e: MouseEvent) => {
+            e.stopPropagation()
+            this.filterVideo("AddContrast")
+          },
         },
         {
           text: "-",
-          onAction: (e: MouseEvent) => this.filterVideo("SubtractContrast"),
+          onAction: (e: MouseEvent) => {
+            e.stopPropagation()
+            this.filterVideo("SubtractContrast")
+          },
         },
       ],
     },
@@ -155,16 +166,23 @@ class ClickDrag extends Drag {
       text: "Brightness",
       filter: "brightness",
       onAction: (e: MouseEvent) => {
+        e.stopPropagation()
         this.filterVideo("ResetBrightness")
       },
       children: [
         {
           text: "+",
-          onAction: (e: MouseEvent) => this.filterVideo("AddBrightness"),
+          onAction: (e: MouseEvent) => {
+            e.stopPropagation()
+            this.filterVideo("AddBrightness")
+          },
         },
         {
           text: "-",
-          onAction: (e: MouseEvent) => this.filterVideo("SubtractBrightness"),
+          onAction: (e: MouseEvent) => {
+            e.stopPropagation()
+            this.filterVideo("SubtractBrightness")
+          },
         },
       ],
     },
@@ -172,16 +190,23 @@ class ClickDrag extends Drag {
       text: "Saturate",
       filter: "saturate",
       onAction: (e: MouseEvent) => {
+        e.stopPropagation()
         this.filterVideo("ResetSaturate")
       },
       children: [
         {
           text: "+",
-          onAction: (e: MouseEvent) => this.filterVideo("AddSaturate"),
+          onAction: (e: MouseEvent) => {
+            e.stopPropagation()
+            this.filterVideo("AddSaturate")
+          },
         },
         {
           text: "-",
-          onAction: (e: MouseEvent) => this.filterVideo("SubtractSaturate"),
+          onAction: (e: MouseEvent) => {
+            e.stopPropagation()
+            this.filterVideo("SubtractSaturate")
+          },
         },
       ],
     },
@@ -192,6 +217,7 @@ class ClickDrag extends Drag {
     {
       text: "Close",
       onAction: (e: MouseEvent) => {
+        e.stopPropagation()
         this.toggleFog()
       },
     },
@@ -230,7 +256,8 @@ class ClickDrag extends Drag {
       const div = document.createElement("div")
       const on = document.createElement("div")
       on.classList.add("ytf-fog-on")
-      on.onclick = () => {
+      on.onclick = (e) => {
+        e.stopPropagation()
         if (div.classList.contains("active")) {
           div.classList.remove("active")
         } else {
@@ -777,13 +804,6 @@ class ClickDrag extends Drag {
     cancelAnimationFrame(this.inertiaAnimationFrame)
     if (this.dragged && this.isDrag) {
       this.dragFinish()
-    } else {
-      // const video = this.getYoutubeVideo()
-      // if (video.paused) {
-      //   video.play()
-      // } else {
-      //   video.pause()
-      // }
     }
     this.dragged = false
     this.isDrag = false
