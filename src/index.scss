@@ -109,6 +109,29 @@
         display: flex;
       }
     }
+    .ytf-timeCircle {
+      cursor: default;
+      position: absolute;
+      transform: translate(-50%, -50%);
+      background-color: rgba(255, 255, 255, 0.169);
+      backdrop-filter: blur(6px);
+      color: #0006;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 24px;
+      font-weight: bold;
+      overflow: hidden;
+      .ytf-circle-timeline {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        background-color: rgba(255, 0, 0, 0.335);
+        z-index: -1;
+      }
+    }
   }
   &.fog {
     .html5-video-player {

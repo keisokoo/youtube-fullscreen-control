@@ -1,5 +1,14 @@
 import Drag from "./Drag"
-
+const toHHMMSS = (secondsTime: number) => {
+  if (!Number(secondsTime) || !secondsTime) return "00:00"
+  let sec_num = Number(secondsTime.toFixed(0))
+  let hours: number = Math.floor(sec_num / 3600)
+  let minutes: number = Math.floor((sec_num - hours * 3600) / 60)
+  let seconds: number = sec_num - hours * 3600 - minutes * 60
+  return `${hours ? String(hours).padStart(2, "0") + ":" : ""}${String(
+    minutes
+  ).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+}
 const isKeyOf = <T extends object>(obj: T, value: any): value is keyof T => {
   return (
     !!value &&
@@ -296,11 +305,21 @@ class ClickDrag extends Drag {
     const video = this.getYoutubeVideo()
     if (runCode === "LoopStart") {
       if (this.loopTime.end && this.loopTime.end < video.currentTime) return
+      if (this.loopTime.start) {
+        this.loopTime.start = null
+        this.deleteTip("start")
+        return
+      }
       this.loopTime.start = video.currentTime
       this.createTip("start", (this.loopTime.start / video.duration) * 100)
     }
     if (runCode === "LoopEnd") {
       if (this.loopTime.start && this.loopTime.start > video.currentTime) return
+      if (this.loopTime.end) {
+        this.loopTime.end = null
+        this.deleteTip("end")
+        return
+      }
       this.loopTime.end = video.currentTime
       this.createTip("end", (this.loopTime.end / video.duration) * 100)
     }
@@ -483,15 +502,65 @@ class ClickDrag extends Drag {
     if (event.preventDefault != undefined) event.preventDefault()
     if (event.stopPropagation != undefined) event.stopPropagation()
   }
+  startMousePosition = {
+    left: 0,
+    right: 0,
+  }
+  videoTimeline = {
+    currentTime: 0,
+    duration: 0,
+  }
+  seekThreshold = 64
+  nextVideoTime = 0
+  isSeek = false
+  isPausedBeforeSeek = false
+  private createTimeline = (event: MouseEvent) => {
+    const fog = document.querySelector(".ytf-fog")
+    const before = document.querySelector(".ytf-timeCircle")
+    if (before) before.remove()
+    if (fog) {
+      const timeCircle = document.createElement("div")
+      const timeCircleSpan = document.createElement("span")
+      const circleTimeline = document.createElement("div")
+      circleTimeline.classList.add("ytf-circle-timeline")
+      timeCircle.classList.add("ytf-timeCircle")
+      timeCircle.style.width = this.seekThreshold * 2 + "px"
+      timeCircle.style.height = this.seekThreshold * 2 + "px"
+      timeCircle.style.top = event.pageY + "px"
+      timeCircle.style.left = event.pageX + "px"
+      timeCircle.appendChild(circleTimeline)
+      timeCircle.appendChild(timeCircleSpan)
+      fog.appendChild(timeCircle)
+    }
+  }
   onMouseDown = (event: MouseEvent) => {
     if (!this.checkFog()) {
       return false
     }
     if (event.preventDefault != undefined) event.preventDefault()
     if (event.stopPropagation != undefined) event.stopPropagation()
+    const eventTarget = this.eventElement ?? this.targetElement
     this.ts = this.getPosition()
     if (event.button === 2) {
-      this.transformVideo("Reset")
+      this.createTimeline(event)
+      const video = this.getYoutubeVideo()
+      this.isPausedBeforeSeek = video.paused
+      this.startMousePosition = {
+        left: event.pageX,
+        right: window.innerWidth - event.pageX,
+      }
+      this.videoTimeline = {
+        currentTime: video.currentTime,
+        duration: video.duration,
+      }
+      this.isSeek = true
+      this.nextVideoTime = video.currentTime
+      eventTarget.addEventListener("mousemove", this.moveSeek, {
+        passive: true,
+      })
+      eventTarget.addEventListener("mouseup", this.endSeek)
+      eventTarget.addEventListener("mouseleave", this.endSeek)
+
       return
     }
     cancelAnimationFrame(this.inertiaAnimationFrame)
@@ -499,6 +568,7 @@ class ClickDrag extends Drag {
     const currentTarget = document.querySelector(".ytf-fog") as HTMLElement
     if (currentTarget) currentTarget.style.cursor = "grabbing"
     this.isDrag = true
+    this.isSeek = false
     this.isScale = false
     this.startPoint = {
       x: event.pageX,
@@ -509,10 +579,91 @@ class ClickDrag extends Drag {
       y: this.ts.translate.y,
     }
     this.velocity = { x: 0, y: 0 }
-    const eventTarget = this.eventElement ?? this.targetElement
     eventTarget.addEventListener("mousemove", this.onMove, { passive: true })
     eventTarget.addEventListener("mouseup", this.onEnd)
     eventTarget.addEventListener("mouseleave", this.onEnd)
+  }
+  moveSeek = (event: MouseEvent) => {
+    if (!this.checkFog()) return
+    if (!this.targetElement) return
+    const x = event.pageX
+    const y = event.pageY
+    const oldX = this.ts.translate.x
+    const oldY = this.ts.translate.y
+    const isInvert = false
+    const invert = isInvert ? 1 : -1
+    if (this.isSeek) {
+      const currentTarget = document.querySelector(".ytf-fog") as HTMLElement
+      const currentLeft = x - this.startMousePosition.left
+      if (currentLeft < -this.seekThreshold) {
+        if (currentTarget) currentTarget.style.cursor = "w-resize"
+        // left
+        const calculateX = x - this.startMousePosition.left + this.seekThreshold
+
+        const leftPercent =
+          (this.startMousePosition.left - this.seekThreshold + calculateX) /
+          (this.startMousePosition.left - this.seekThreshold)
+        this.nextVideoTime = this.videoTimeline.currentTime * leftPercent
+      } else if (currentLeft > this.seekThreshold) {
+        if (currentTarget) currentTarget.style.cursor = "e-resize"
+        const calculateX = x - this.startMousePosition.left - this.seekThreshold
+        // right
+        const rightPercent =
+          1 -
+          (this.startMousePosition.right - this.seekThreshold - calculateX) /
+            (this.startMousePosition.right - this.seekThreshold)
+        this.nextVideoTime =
+          this.videoTimeline.currentTime +
+          (this.videoTimeline.duration - this.videoTimeline.currentTime) *
+            rightPercent
+      } else {
+        if (currentTarget) currentTarget.style.cursor = ""
+        this.nextVideoTime = this.videoTimeline.currentTime
+      }
+      const video = this.getYoutubeVideo()
+      if (
+        this.nextVideoTime &&
+        this.nextVideoTime !== this.videoTimeline.currentTime
+      ) {
+        if (!video.paused) video.pause()
+        video.currentTime = this.nextVideoTime
+      } else if (
+        video.paused &&
+        this.videoTimeline.currentTime !== video.currentTime
+      ) {
+        video.currentTime = this.videoTimeline.currentTime
+        this.nextVideoTime = this.videoTimeline.currentTime
+      }
+      const timeCircleSpan = document.querySelector(".ytf-timeCircle > span")
+      const circleTimeline = document.querySelector(
+        ".ytf-circle-timeline"
+      ) as HTMLElement
+      if (timeCircleSpan)
+        timeCircleSpan.textContent = toHHMMSS(this.nextVideoTime)
+      if (circleTimeline)
+        circleTimeline.style.width =
+          String((this.nextVideoTime / this.videoTimeline.duration) * 100) + "%"
+    }
+  }
+  endSeek = () => {
+    this.isSeek = false
+    const eventTarget = this.eventElement ?? this.targetElement
+    const currentTarget = document.querySelector(".ytf-fog") as HTMLElement
+    if (currentTarget) currentTarget.style.cursor = ""
+
+    const timeCircle = document.querySelector(".ytf-timeCircle")
+    if (timeCircle) timeCircle.remove()
+
+    if (this.nextVideoTime) {
+      const video = this.getYoutubeVideo()
+      if (video.paused && !this.isPausedBeforeSeek) {
+        video.play()
+      }
+      // video.currentTime = this.nextVideoTime
+    }
+    eventTarget.removeEventListener("mousemove", this.moveSeek)
+    eventTarget.removeEventListener("mouseup", this.endSeek)
+    eventTarget.removeEventListener("mouseleave", this.endSeek)
   }
   private onMove = (event: MouseEvent) => {
     if (!this.checkFog()) return
@@ -522,30 +673,31 @@ class ClickDrag extends Drag {
       ? this.eventElement.ontouchmove
       : this.targetElement.ontouchmove
     this.targetElement.ontouchmove = null
-
     const x = event.pageX
     const y = event.pageY
     const oldX = this.ts.translate.x
     const oldY = this.ts.translate.y
     const isInvert = false
     const invert = isInvert ? 1 : -1
-    this.ts.translate.x =
-      this.previousPosition.x + invert * (-x + this.startPoint.x)
-    this.ts.translate.y =
-      this.previousPosition.y + invert * (-y + this.startPoint.y)
-    this.ts.translate = this.restrictXY(this.ts.translate)
-    this.setTransform()
+    if (this.isDrag) {
+      this.ts.translate.x =
+        this.previousPosition.x + invert * (-x + this.startPoint.x)
+      this.ts.translate.y =
+        this.previousPosition.y + invert * (-y + this.startPoint.y)
+      this.ts.translate = this.restrictXY(this.ts.translate)
+      this.setTransform()
 
-    this.velocity = {
-      x: this.ts.translate.x - oldX,
-      y: this.ts.translate.y - oldY,
+      this.velocity = {
+        x: this.ts.translate.x - oldX,
+        y: this.ts.translate.y - oldY,
+      }
+      if (
+        Math.abs(this.previousPosition.x - this.ts.translate.x) >
+          this.threshold ||
+        Math.abs(this.previousPosition.y - this.ts.translate.x) > this.threshold
+      )
+        this.dragged = true
     }
-    if (
-      Math.abs(this.previousPosition.x - this.ts.translate.x) >
-        this.threshold ||
-      Math.abs(this.previousPosition.y - this.ts.translate.x) > this.threshold
-    )
-      this.dragged = true
     // 핀치 이벤트
     // 중첩 실행 문제 (성능) 해결 :: 굳이 할 필요없음.
     if (this.eventElement) {
@@ -577,11 +729,11 @@ class ClickDrag extends Drag {
     cancelAnimationFrame(this.inertiaAnimationFrame)
     if (this.dragged && this.isDrag) {
       this.dragFinish()
-    }else{
+    } else {
       const video = this.getYoutubeVideo()
-      if(video.paused){
+      if (video.paused) {
         video.play()
-      }else{
+      } else {
         video.pause()
       }
     }
