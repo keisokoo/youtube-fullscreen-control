@@ -623,23 +623,21 @@ class ClickDrag extends Drag {
       return
     }
     cancelAnimationFrame(this.inertiaAnimationFrame)
-    if (!isTouchEvent(event) && event.button !== 0) return
-    if (isTouchEvent(event) && event.touches.length !== 1) return
     if (isTouchEvent(event) && event.touches.length === 1) {
       this.startPoint = {
         x: event.touches[0].pageX,
         y: event.touches[0].pageY,
       }
-      eventTarget.addEventListener("mousemove", this.onMove, { passive: true })
-      eventTarget.addEventListener("mouseup", this.onEnd)
-      eventTarget.addEventListener("mouseleave", this.onEnd)
+      eventTarget.addEventListener("touchmove", this.onMove, { passive: true })
+      eventTarget.addEventListener("touchend", this.onEnd)
     } else if (!isTouchEvent(event) && event.button === 0) {
       this.startPoint = {
         x: event.pageX,
         y: event.pageY,
       }
-      eventTarget.addEventListener("touchmove", this.onMove, { passive: true })
-      eventTarget.addEventListener("touchend", this.onEnd)
+      eventTarget.addEventListener("mousemove", this.onMove, { passive: true })
+      eventTarget.addEventListener("mouseup", this.onEnd)
+      eventTarget.addEventListener("mouseleave", this.onEnd)
     }
     const currentTarget = document.querySelector(".ytf-fog") as HTMLElement
     if (currentTarget) currentTarget.style.cursor = "grabbing"
@@ -757,11 +755,6 @@ class ClickDrag extends Drag {
   private onMove = (event: MouseEvent | TouchEvent) => {
     if (!this.checkFog()) return
     if (!this.targetElement) return
-    // 중첩 실행 문제 (성능) 해결 :: 굳이 할 필요없음.
-    let func = this.eventElement
-      ? this.eventElement.ontouchmove
-      : this.targetElement.ontouchmove
-    this.targetElement.ontouchmove = null
     const x = isTouchEvent(event) ? event.touches[0].pageX : event.pageX
     const y = isTouchEvent(event) ? event.touches[0].pageY : event.pageY
     const oldX = this.ts.translate.x
@@ -787,13 +780,6 @@ class ClickDrag extends Drag {
       )
         this.dragged = true
     }
-    // 핀치 이벤트
-    // 중첩 실행 문제 (성능) 해결 :: 굳이 할 필요없음.
-    if (this.eventElement) {
-      this.eventElement.ontouchmove = func
-    } else {
-      this.targetElement.ontouchmove = func
-    }
   }
   toggleStatus = (event: MouseEvent) => {
     if (event.button === 1) {
@@ -808,17 +794,15 @@ class ClickDrag extends Drag {
     if (!this.checkFog()) return
     event.stopPropagation()
     event.preventDefault()
+
     const currentTarget = document.querySelector(".ytf-fog") as HTMLElement
     if (currentTarget) currentTarget.style.cursor = ""
     const eventTarget = this.eventElement ?? this.targetElement
-    if (isTouchEvent(event)) {
-      eventTarget.removeEventListener("touchmove", this.onMove)
-      eventTarget.removeEventListener("touchend", this.onEnd)
-    } else {
-      eventTarget.removeEventListener("mousemove", this.onMove)
-      eventTarget.removeEventListener("mouseup", this.onEnd)
-      eventTarget.removeEventListener("mouseleave", this.onEnd)
-    }
+    eventTarget.removeEventListener("touchmove", this.onMove)
+    eventTarget.removeEventListener("touchend", this.onEnd)
+    eventTarget.removeEventListener("mousemove", this.onMove)
+    eventTarget.removeEventListener("mouseup", this.onEnd)
+    eventTarget.removeEventListener("mouseleave", this.onEnd)
 
     cancelAnimationFrame(this.inertiaAnimationFrame)
     if (this.dragged && this.isDrag) {
