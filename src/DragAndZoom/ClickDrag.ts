@@ -260,14 +260,6 @@ class ClickDrag extends Drag {
       const div = document.createElement("div")
       const on = document.createElement("div")
       on.classList.add("ytf-fog-on")
-      on.onclick = (e) => {
-        e.stopPropagation()
-        if (div.classList.contains("active")) {
-          div.classList.remove("active")
-        } else {
-          div.classList.add("active")
-        }
-      }
       div.classList.add("ytf-fog")
       div.appendChild(on)
       const controlDiv = document.createElement("div")
@@ -592,10 +584,10 @@ class ClickDrag extends Drag {
     if (!this.checkFog()) {
       return false
     }
-    if (
-      isTouchEvent(event) &&
-      (event.target as HTMLElement).classList.contains("ytf-fog-on")
-    ) {
+    if ((event.target as HTMLElement).closest(".ytf-control")) {
+      return
+    }
+    if ((event.target as HTMLElement).classList.contains("ytf-fog-on")) {
       event.stopPropagation()
       const div = document.querySelector(".ytf-fog")
       if (!div) return
