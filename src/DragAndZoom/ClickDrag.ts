@@ -592,6 +592,21 @@ class ClickDrag extends Drag {
     if (!this.checkFog()) {
       return false
     }
+    if (
+      isTouchEvent(event) &&
+      (event.target as HTMLElement).classList.contains("ytf-fog-on")
+    ) {
+      event.stopPropagation()
+      const div = document.querySelector(".ytf-fog")
+      if (!div) return
+      if (div.classList.contains("active")) {
+        div.classList.remove("active")
+      } else {
+        div.classList.add("active")
+      }
+      return
+    }
+
     if (event.preventDefault != undefined) event.preventDefault()
     if (event.stopPropagation != undefined) event.stopPropagation()
     const eventTarget = this.eventElement ?? this.targetElement
