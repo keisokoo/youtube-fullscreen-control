@@ -17,6 +17,10 @@ const isKeyOf = <T extends object>(obj: T, value: any): value is keyof T => {
     )
   )
 }
+
+const isTouchEvent = (event: any): event is TouchEvent => {
+  return "touches" in event
+}
 const ControlTypeList = [
   "RotationPlus",
   "RotationMinus",
@@ -584,7 +588,7 @@ class ClickDrag extends Drag {
       return "left"
     }
   }
-  onMouseDown = (event: MouseEvent) => {
+  onMouseDown = (event: MouseEvent | TouchEvent) => {
     if (!this.checkFog()) {
       return false
     }
@@ -592,7 +596,7 @@ class ClickDrag extends Drag {
     if (event.stopPropagation != undefined) event.stopPropagation()
     const eventTarget = this.eventElement ?? this.targetElement
     this.ts = this.getPosition()
-    if (event.button === 2) {
+    if (!isTouchEvent(event) && event.button === 2) {
       this.startPoint = {
         x: event.pageX,
         y: event.pageY,
@@ -619,24 +623,34 @@ class ClickDrag extends Drag {
       return
     }
     cancelAnimationFrame(this.inertiaAnimationFrame)
-    if (event.button !== 0) return
+    if (!isTouchEvent(event) && event.button !== 0) return
+    if (isTouchEvent(event) && event.touches.length !== 1) return
+    if (isTouchEvent(event) && event.touches.length === 1) {
+      this.startPoint = {
+        x: event.touches[0].pageX,
+        y: event.touches[0].pageY,
+      }
+      eventTarget.addEventListener("mousemove", this.onMove, { passive: true })
+      eventTarget.addEventListener("mouseup", this.onEnd)
+      eventTarget.addEventListener("mouseleave", this.onEnd)
+    } else if (!isTouchEvent(event) && event.button === 0) {
+      this.startPoint = {
+        x: event.pageX,
+        y: event.pageY,
+      }
+      eventTarget.addEventListener("touchmove", this.onMove, { passive: true })
+      eventTarget.addEventListener("touchend", this.onEnd)
+    }
     const currentTarget = document.querySelector(".ytf-fog") as HTMLElement
     if (currentTarget) currentTarget.style.cursor = "grabbing"
     this.isDrag = true
     this.isSeek = false
     this.isScale = false
-    this.startPoint = {
-      x: event.pageX,
-      y: event.pageY,
-    }
     this.previousPosition = {
       x: this.ts.translate.x,
       y: this.ts.translate.y,
     }
     this.velocity = { x: 0, y: 0 }
-    eventTarget.addEventListener("mousemove", this.onMove, { passive: true })
-    eventTarget.addEventListener("mouseup", this.onEnd)
-    eventTarget.addEventListener("mouseleave", this.onEnd)
   }
   moveSeek = (event: MouseEvent) => {
     if (!this.checkFog()) return
@@ -740,7 +754,7 @@ class ClickDrag extends Drag {
     eventTarget.removeEventListener("mouseup", this.endSeek)
     eventTarget.removeEventListener("mouseleave", this.endSeek)
   }
-  private onMove = (event: MouseEvent) => {
+  private onMove = (event: MouseEvent | TouchEvent) => {
     if (!this.checkFog()) return
     if (!this.targetElement) return
     // 중첩 실행 문제 (성능) 해결 :: 굳이 할 필요없음.
@@ -748,8 +762,8 @@ class ClickDrag extends Drag {
       ? this.eventElement.ontouchmove
       : this.targetElement.ontouchmove
     this.targetElement.ontouchmove = null
-    const x = event.pageX
-    const y = event.pageY
+    const x = isTouchEvent(event) ? event.touches[0].pageX : event.pageX
+    const y = isTouchEvent(event) ? event.touches[0].pageY : event.pageY
     const oldX = this.ts.translate.x
     const oldY = this.ts.translate.y
     const isInvert = false
@@ -790,16 +804,21 @@ class ClickDrag extends Drag {
       return false
     }
   }
-  private onEnd = (event: MouseEvent) => {
+  private onEnd = (event: MouseEvent | TouchEvent) => {
     if (!this.checkFog()) return
     event.stopPropagation()
     event.preventDefault()
     const currentTarget = document.querySelector(".ytf-fog") as HTMLElement
     if (currentTarget) currentTarget.style.cursor = ""
     const eventTarget = this.eventElement ?? this.targetElement
-    eventTarget.removeEventListener("mousemove", this.onMove)
-    eventTarget.removeEventListener("mouseup", this.onEnd)
-    eventTarget.removeEventListener("mouseleave", this.onEnd)
+    if (isTouchEvent(event)) {
+      eventTarget.removeEventListener("touchmove", this.onMove)
+      eventTarget.removeEventListener("touchend", this.onEnd)
+    } else {
+      eventTarget.removeEventListener("mousemove", this.onMove)
+      eventTarget.removeEventListener("mouseup", this.onEnd)
+      eventTarget.removeEventListener("mouseleave", this.onEnd)
+    }
 
     cancelAnimationFrame(this.inertiaAnimationFrame)
     if (this.dragged && this.isDrag) {

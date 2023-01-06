@@ -67,6 +67,7 @@ function main() {
           "contextmenu",
           dragZoom.disableContextMenu
         )
+        parentElement.addEventListener("touchstart", dragZoom.onMouseDown)
         parentElement.addEventListener("mousedown", dragZoom.onMouseDown)
         parentElement.addEventListener("mousedown", dragZoom.toggleStatus)
         parentElement.addEventListener("wheel", dragZoom.onWheel)
@@ -83,6 +84,7 @@ function main() {
           "contextmenu",
           dragZoom.disableContextMenu
         )
+        parentElement.removeEventListener("touchstart", dragZoom.onMouseDown)
         parentElement.removeEventListener("mousedown", dragZoom.toggleStatus)
         parentElement.removeEventListener("mousedown", dragZoom.onMouseDown)
         parentElement.removeEventListener("wheel", dragZoom.onWheel)
