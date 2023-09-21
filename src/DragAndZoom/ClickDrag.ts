@@ -17,7 +17,24 @@ const isKeyOf = <T extends object>(obj: T, value: any): value is keyof T => {
     )
   )
 }
+const currentTimeUpdate = (e: Event) => {
+  const video = document.querySelector(
+    "video"
+  ) as HTMLVideoElement
+  if (!video) return
+  if (!video.duration) return
+  if (!video.currentTime) return
+  const timeCircleSpan = document.querySelector(".ytf-timeCircle > span")
+  const circleTimeline = document.querySelector(
+    ".ytf-circle-timeline"
+  ) as HTMLElement
+  if (timeCircleSpan)
+    timeCircleSpan.textContent = toHHMMSS(video.currentTime)
+  if (circleTimeline)
+    circleTimeline.style.width =
+      String((video.currentTime / video.duration) * 100) + "%"
 
+}
 const isTouchEvent = (event: any): event is TouchEvent => {
   return "touches" in event
 }
@@ -547,6 +564,7 @@ class ClickDrag extends Drag {
   seekThreshold = 64
   nextVideoTime = 0
   isSeek = false
+  DragInSeek = false
   isPausedBeforeSeek = false
   ballControl: { keyCode: string; label: string } | null = null
   private createTimeline = (event: MouseEvent) => {
@@ -566,6 +584,8 @@ class ClickDrag extends Drag {
       timeCircle.appendChild(circleTimeline)
       timeCircle.appendChild(timeCircleSpan)
       fog.appendChild(timeCircle)
+      const video = this.getYoutubeVideo()
+      video.addEventListener("timeupdate", currentTimeUpdate)
     }
   }
   getDirection = (coords: [number, number]) => {
@@ -603,6 +623,7 @@ class ClickDrag extends Drag {
     if (event.stopPropagation != undefined) event.stopPropagation()
     const eventTarget = this.eventElement ?? this.targetElement
     this.ts = this.getPosition()
+
     if (!isTouchEvent(event) && event.button === 2) {
       this.startPoint = {
         x: event.pageX,
@@ -620,6 +641,7 @@ class ClickDrag extends Drag {
         duration: video.duration,
       }
       this.isSeek = true
+      this.DragInSeek = false
       this.nextVideoTime = video.currentTime
       eventTarget.addEventListener("mousemove", this.moveSeek, {
         passive: true,
@@ -650,6 +672,7 @@ class ClickDrag extends Drag {
     if (currentTarget) currentTarget.style.cursor = "grabbing"
     this.isDrag = true
     this.isSeek = false
+    this.DragInSeek = false
     this.isScale = false
     this.previousPosition = {
       x: this.ts.translate.x,
@@ -667,6 +690,10 @@ class ClickDrag extends Drag {
     const yDiff = y - this.startPoint.y
     const directions = this.getDirection([xDiff, yDiff])
     if (this.isSeek) {
+      if (!this.DragInSeek) {
+        this.DragInSeek = true
+        video.removeEventListener("timeupdate", currentTimeUpdate)
+      }
       const currentTarget = document.querySelector(".ytf-fog") as HTMLElement
       const currentLeft = x - this.startMousePosition.left
       const currentTop = y - this.startPoint.y
@@ -737,6 +764,9 @@ class ClickDrag extends Drag {
     }
   }
   endSeek = () => {
+    const video = this.getYoutubeVideo()
+    if (video)
+      video.removeEventListener("timeupdate", currentTimeUpdate)
     this.isSeek = false
     const eventTarget = this.eventElement ?? this.targetElement
     const currentTarget = document.querySelector(".ytf-fog") as HTMLElement
@@ -746,8 +776,7 @@ class ClickDrag extends Drag {
     if (timeCircle) timeCircle.remove()
 
     if (this.nextVideoTime) {
-      const video = this.getYoutubeVideo()
-      if (video.paused && !this.isPausedBeforeSeek) {
+      if (video?.paused && !this.isPausedBeforeSeek) {
         video.play()
       }
     }
