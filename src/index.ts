@@ -42,8 +42,8 @@ function main() {
     }
     if (!parentElement) {
       if (!video) return
-      if (!video.closest("#player-theater-container")) return
-      parentElement = video.closest("#player-theater-container")! as HTMLElement
+      if (!video.closest("#full-bleed-container")) return
+      parentElement = video.closest("#full-bleed-container")! as HTMLElement
     }
     if (!dragZoom) {
       if (!video) return

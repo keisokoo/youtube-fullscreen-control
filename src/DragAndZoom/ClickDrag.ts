@@ -122,7 +122,7 @@ class ClickDrag extends Drag {
     },
     {
       text: "Empty",
-      onAction: (e: MouseEvent) => {},
+      onAction: (e: MouseEvent) => { },
     },
     {
       text: "HCover",
@@ -140,7 +140,7 @@ class ClickDrag extends Drag {
     },
     {
       text: "Empty",
-      onAction: (e: MouseEvent) => {},
+      onAction: (e: MouseEvent) => { },
     },
     {
       text: "Contrast",
@@ -216,7 +216,7 @@ class ClickDrag extends Drag {
     },
     {
       text: "Empty",
-      onAction: (e: MouseEvent) => {},
+      onAction: (e: MouseEvent) => { },
     },
     {
       text: "Close",
@@ -249,7 +249,7 @@ class ClickDrag extends Drag {
     return !!fog
   }
   toggleFog = (remove?: boolean) => {
-    const wrap = document.querySelector("#player-theater-container")
+    const wrap = document.querySelector("#full-bleed-container")
     if (!wrap) return
     const fog = document.querySelector(".ytf-fog")
     if (fog) {
@@ -698,11 +698,11 @@ class ClickDrag extends Drag {
         const rightPercent =
           1 -
           (this.startMousePosition.right - this.seekThreshold - calculateX) /
-            (this.startMousePosition.right - this.seekThreshold)
+          (this.startMousePosition.right - this.seekThreshold)
         this.nextVideoTime =
           this.videoTimeline.currentTime +
           (this.videoTimeline.duration - this.videoTimeline.currentTime) *
-            rightPercent
+          rightPercent
       } else {
         if (currentTarget) currentTarget.style.cursor = ""
         this.nextVideoTime = this.videoTimeline.currentTime
@@ -782,7 +782,7 @@ class ClickDrag extends Drag {
       }
       if (
         Math.abs(this.previousPosition.x - this.ts.translate.x) >
-          this.threshold ||
+        this.threshold ||
         Math.abs(this.previousPosition.y - this.ts.translate.x) > this.threshold
       )
         this.dragged = true
